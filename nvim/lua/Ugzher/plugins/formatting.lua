@@ -38,7 +38,7 @@ return {
         liquid = { "prettier" },
         lua = { "stylua" },
         markdown = { "prettier", "markdown-toc" },
-        go = { "goimports", "gofmt" },
+        go = { "gofmt" },
       },
       format_on_save = {
         lsp_fallback = true,
@@ -90,19 +90,6 @@ return {
       args = { "--stdin-filepath", "$FILENAME", "-" },
       stdin = true,
       cwd = require("conform.util").root_file({ "stylua.toml", ".stylua.toml" }),
-    }
-
-    conform.formatters.goimports = {
-      command = "goimports",
-      args = { "-srcdir", "$FILENAME" },
-      stdin = true,
-    }
-
-    -- Configure gofmt
-    conform.formatters.gofmt = {
-      command = "gofmt",
-      args = {},
-      stdin = true,
     }
 
     -- Create a command to toggle format on save
