@@ -24,3 +24,4 @@ bindkey -v
 export KEYTIMEOUT=1
 export PATH=$PATH:/usr/local/go/bin
 export PATH=~/bin:$PATH
+export PATH="$HOME/.local/bin:$PATH"
