@@ -1,0 +1,84 @@
+add_newline = false
+
+format = """
+$directory\
+$git_branch\
+$git_status\
+$nodejs\
+$golang\
+$python\
+$rust\
+$docker_context\
+$kubernetes\
+$aws\
+$character"""
+command_timeout = 1000
+
+[directory]
+format = "[$path]($style) "
+style = "bold cyan"
+truncation_length = 100
+truncate_to_repo = false
+
+[git_branch]
+format = '[git:](bold blue)[\(](blue)[$branch](red)[\)](bold blue)'
+symbol = ""
+
+[git_status]
+disabled = true  # or configure it if you want status indicators
+
+[character]
+success_symbol = "[➜](bold green)"
+error_symbol = "[➜](bold red)"
+vicmd_symbol = "[➜](bold yellow)"
+
+# Keep your Catppuccin palette
+[palettes.catppuccin_mocha]
+rosewater = "#f5e0dc"
+flamingo = "#f2cdcd"
+pink = "#f5c2e7"
+mauve = "#cba6f7"
+red = "#f38ba8"
+maroon = "#eba0ac"
+peach = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+teal = "#94e2d5"
+sky = "#89dceb"
+sapphire = "#74c7ec"
+blue = "#89b4fa"
+lavender = "#b4befe"
+text = "#cdd6f4"
+subtext1 = "#bac2de"
+subtext0 = "#a6adc8"
+overlay2 = "#9399b2"
+overlay1 = "#7f849c"
+overlay0 = "#6c7086"
+surface2 = "#585b70"
+surface1 = "#45475a"
+surface0 = "#313244"
+base = "#1e1e2e"
+mantle = "#181825"
+crust = "#11111b"
+
+[docker_context]
+disabled = true
+
+[golang]
+format = '[ ](bold cyan)'
+
+[package]
+disabled = true # Enable to output the current working directory's package version
+format = "[$symbol$version]($style) "
+display_private = true
+
+[nodejs]
+format = " via [$symbol($version )]($style)"
+style = "yellow"
+detect_files = ["package.json", "package-lock.json"]  # Only show when these exist
+detect_folders = ["node_modules"]
+
+[line_break]
+disabled = false
+[directory.substitutions]
+'~/tests/starship-custom' = 'work-project'
