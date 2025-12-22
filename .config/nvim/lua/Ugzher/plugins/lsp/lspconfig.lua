@@ -1,6 +1,7 @@
 -- lua/Ugzher/plugins/lsp/lspconfig.lua
 -- LSP configuration with all language servers
 --
+
 return {
 	"neovim/nvim-lspconfig",
 	event = { "BufReadPre", "BufNewFile" },
@@ -13,37 +14,43 @@ return {
 		local cmp_nvim_lsp = require("cmp_nvim_lsp")
 		local keymap = vim.keymap
 
-		-- LSP attach function with keymaps
+		------------------------------------------------------------------------
+		-- on_attach
+		------------------------------------------------------------------------
 		local on_attach = function(client, bufnr)
 			local opts = { noremap = true, silent = true, buffer = bufnr }
-			-- Keybindings
-			opts.desc = "Show LSP references"
-			keymap.set("n", "gR", "<cmd>Telescope lsp_references<CR>", opts)
-			opts.desc = "Go to declaration"
+			local builtin = require("telescope.builtin")
+
+			if client.server_capabilities.definitionProvider then
+				keymap.set("n", "gd", builtin.lsp_definitions, opts)
+			end
+			if client.server_capabilities.referencesProvider then
+				keymap.set("n", "gR", builtin.lsp_references, opts)
+			end
+			if client.server_capabilities.implementationProvider then
+				keymap.set("n", "gi", builtin.lsp_implementations, opts)
+			end
+			if client.server_capabilities.typeDefinitionProvider then
+				keymap.set("n", "gt", builtin.lsp_type_definitions, opts)
+			end
+
 			keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
-			opts.desc = "Show LSP definitions"
-			keymap.set("n", "gd", "<cmd>Telescope lsp_definitions<CR>", opts)
-			opts.desc = "Show LSP implementations"
-			keymap.set("n", "gi", "<cmd>Telescope lsp_implementations<CR>", opts)
-			opts.desc = "Show LSP type definitions"
-			keymap.set("n", "gt", "<cmd>Telescope lsp_type_definitions<CR>", opts)
-			opts.desc = "See available code actions"
-			keymap.set({ "n", "v" }, "<leader>vca", vim.lsp.buf.code_action, opts)
-			opts.desc = "Smart rename"
-			keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
-			opts.desc = "Show buffer diagnostics"
-			keymap.set("n", "<leader>D", "<cmd>Telescope diagnostics bufnr=0<CR>", opts)
-			opts.desc = "Show line diagnostics"
-			keymap.set("n", "<leader>d", vim.diagnostic.open_float, opts)
-			opts.desc = "Show documentation for what is under cursor"
 			keymap.set("n", "K", vim.lsp.buf.hover, opts)
-			opts.desc = "Restart LSP"
-			keymap.set("n", "<leader>rs", ":LspRestart<CR>", opts)
+			keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
+			keymap.set({ "n", "v" }, "<leader>vca", vim.lsp.buf.code_action, opts)
+			keymap.set("n", "<leader>d", vim.diagnostic.open_float, opts)
+			keymap.set("n", "<leader>D", builtin.diagnostics, opts)
+			keymap.set("n", "<leader>rs", "<cmd>LspRestart<CR>", opts)
 		end
 
-		-- Enhanced capabilities
+		------------------------------------------------------------------------
+		-- Capabilities
+		------------------------------------------------------------------------
 		local capabilities = cmp_nvim_lsp.default_capabilities()
 
+		------------------------------------------------------------------------
+		-- Diagnostics
+		------------------------------------------------------------------------
 		vim.diagnostic.config({
 			signs = {
 				text = {
@@ -57,22 +64,14 @@ return {
 			underline = true,
 			update_in_insert = false,
 			severity_sort = true,
-			float = {
-				border = "rounded",
-				source = "always",
-			},
+			float = { border = "rounded", source = "always" },
 		})
 
-		-- Helper function for root_dir patterns
-		local function root_pattern(...)
-			local patterns = { ... }
-			return function(fname)
-				local util = require("lspconfig.util")
-				return util.root_pattern(unpack(patterns))(fname) or vim.fn.getcwd()
-			end
-		end
+		------------------------------------------------------------------------
+		-- LSP SERVER CONFIGS (Neovim 0.11+)
+		------------------------------------------------------------------------
 
-		-- Clangd LSP
+		-- clangd
 		vim.lsp.config("clangd", {
 			cmd = {
 				"clangd",
@@ -83,191 +82,95 @@ return {
 				"--header-insertion=never",
 			},
 			filetypes = { "c", "cpp", "objc", "objcpp", "cuda" },
-			root_dir = root_pattern(
+			root_dir = vim.fs.root(0, {
 				"compile_commands.json",
-				"compile_flags.txt",
 				".clangd",
-				".clang-format",
 				"CMakeLists.txt",
-				"Makefile",
-				".git"
-			),
+				".git",
+			}),
 			capabilities = capabilities,
 			on_attach = on_attach,
 			settings = {
 				clangd = {
-					fallbackFlags = {
-						"-std=c++17",
-						"-Wall",
-						"-Wextra",
-					},
+					fallbackFlags = { "-std=c++17", "-Wall", "-Wextra" },
 				},
 			},
 		})
 
-		-- Lua LSP (lua_ls)
+		-- lua_ls
 		vim.lsp.config("lua_ls", {
 			capabilities = capabilities,
 			on_attach = on_attach,
 			settings = {
 				Lua = {
-					diagnostics = {
-						globals = { "vim" },
-					},
-					completion = {
-						callSnippet = "Replace",
-					},
+					diagnostics = { globals = { "vim" } },
+					completion = { callSnippet = "Replace" },
 					workspace = {
 						library = {
-							[vim.fn.expand("$VIMRUNTIME/lua")] = true,
-							[vim.fn.stdpath("config") .. "/lua"] = true,
+							vim.fn.expand("$VIMRUNTIME/lua"),
+							vim.fn.stdpath("config") .. "/lua",
 						},
 					},
-					telemetry = {
-						enable = false,
-					},
+					telemetry = { enable = false },
 				},
 			},
 		})
 
-		-- Go LSP (gopls)
+		-- gopls
 		vim.lsp.config("gopls", {
 			cmd = { "gopls", "serve" },
 			filetypes = { "go", "gomod", "gowork", "gotmpl" },
-			root_dir = root_pattern("go.work", "go.mod", ".git"),
+			root_dir = vim.fs.root(0, { "go.work", "go.mod", ".git" }),
 			capabilities = capabilities,
 			on_attach = on_attach,
 			settings = {
 				gopls = {
-					analyses = {
-						unusedparams = true,
-						shadow = true,
-						nilness = true,
-						unusedwrite = true,
-						useany = true,
-					},
-					codelenses = {
-						generate = true,
-						gc_details = true,
-						test = true,
-						tidy = true,
-						upgrade_dependency = true,
-						regenerate_cgo = true,
-					},
-					usePlaceholders = true,
-					completeUnimported = true,
 					staticcheck = true,
-					matcher = "Fuzzy",
-					deepCompletion = true,
-					symbolMatcher = "FastFuzzy",
-					symbolStyle = "Dynamic",
-					hints = {
-						assignVariableTypes = true,
-						compositeLiteralFields = true,
-						compositeLiteralTypes = true,
-						constantValues = true,
-						functionTypeParameters = true,
-						parameterNames = true,
-						rangeVariableTypes = true,
-					},
-					diagnosticsDelay = "500ms",
+					completeUnimported = true,
+					usePlaceholders = true,
 					semanticTokens = true,
-					directoryFilters = {
-						"-**/node_modules",
-						"-**/.git",
-						"-**/vendor",
-					},
-					buildFlags = {},
-					env = {
-						GOFLAGS = "-tags=",
-					},
 				},
 			},
 		})
 
-		-- TypeScript/JavaScript LSP (ts_ls)
+		-- tsserver
 		vim.lsp.config("ts_ls", {
 			filetypes = {
 				"javascript",
 				"javascriptreact",
-				"javascript.jsx",
 				"typescript",
 				"typescriptreact",
-				"typescript.tsx",
 			},
-			root_dir = root_pattern("package.json", "tsconfig.json", "jsconfig.json", ".git"),
+			root_dir = vim.fs.root(0, { "package.json", "tsconfig.json", ".git" }),
 			capabilities = capabilities,
 			on_attach = on_attach,
-			settings = {
-				typescript = {
-					inlayHints = {
-						includeInlayParameterNameHints = "all",
-						includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-						includeInlayFunctionParameterTypeHints = true,
-						includeInlayVariableTypeHints = true,
-						includeInlayPropertyDeclarationTypeHints = true,
-						includeInlayFunctionLikeReturnTypeHints = true,
-						includeInlayEnumMemberValueHints = true,
-					},
-				},
-				javascript = {
-					inlayHints = {
-						includeInlayParameterNameHints = "all",
-						includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-						includeInlayFunctionParameterTypeHints = true,
-						includeInlayVariableTypeHints = true,
-						includeInlayPropertyDeclarationTypeHints = true,
-						includeInlayFunctionLikeReturnTypeHints = true,
-						includeInlayEnumMemberValueHints = true,
-					},
-				},
-			},
 		})
 
-		-- Angular LSP
+		-- Angular
 		vim.lsp.config("angularls", {
-			root_dir = root_pattern("angular.json", "project.json"),
+			root_dir = vim.fs.root(0, { "angular.json", "project.json" }),
 			capabilities = capabilities,
 			on_attach = on_attach,
 		})
 
-		-- HTML LSP
+		-- HTML
 		vim.lsp.config("html", {
 			filetypes = { "html", "htmlangular" },
 			capabilities = capabilities,
 			on_attach = on_attach,
 		})
 
-		-- CSS LSP
+		-- CSS
 		vim.lsp.config("cssls", {
 			capabilities = capabilities,
 			on_attach = on_attach,
-			settings = {
-				css = {
-					validate = true,
-					lint = {
-						unknownAtRules = "ignore",
-					},
-				},
-				scss = {
-					validate = true,
-					lint = {
-						unknownAtRules = "ignore",
-					},
-				},
-				less = {
-					validate = true,
-					lint = {
-						unknownAtRules = "ignore",
-					},
-				},
-			},
 		})
 
-		-- Tailwind CSS LSP
+		-- Tailwind CSS
 		vim.lsp.config("tailwindcss", {
 			filetypes = {
 				"html",
+				"htmlangular",
 				"css",
 				"scss",
 				"javascript",
@@ -281,53 +184,29 @@ return {
 			on_attach = on_attach,
 			settings = {
 				tailwindCSS = {
-					experimental = {
-						classRegex = {
-							{ "cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]" },
-							{ "cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)" },
-						},
+					includeLanguages = {
+						htmlangular = "html",
 					},
 				},
 			},
 		})
 
-		-- JSON LSP
+		-- JSON
 		vim.lsp.config("jsonls", {
 			filetypes = { "json", "jsonc" },
 			capabilities = capabilities,
 			on_attach = on_attach,
-			settings = {
-				json = {
-					schemas = {
-						{
-							fileMatch = { "package.json" },
-							url = "https://json.schemastore.org/package.json",
-						},
-						{
-							fileMatch = { "tsconfig*.json" },
-							url = "https://json.schemastore.org/tsconfig.json",
-						},
-						{
-							fileMatch = { ".prettierrc", ".prettierrc.json", "prettier.config.json" },
-							url = "https://json.schemastore.org/prettierrc.json",
-						},
-						{
-							fileMatch = { ".eslintrc", ".eslintrc.json" },
-							url = "https://json.schemastore.org/eslintrc.json",
-						},
-					},
-					validate = { enable = true },
-				},
-			},
 		})
 
-		-- Prisma LSP
+		-- Prisma
 		vim.lsp.config("prismals", {
 			capabilities = capabilities,
 			on_attach = on_attach,
 		})
 
-		-- Enable the LSP servers
+		------------------------------------------------------------------------
+		-- ENABLE SERVERS
+		------------------------------------------------------------------------
 		vim.lsp.enable({
 			"clangd",
 			"lua_ls",
@@ -637,6 +516,7 @@ return {
 -- 				"typescriptreact",
 -- 				"vue",
 -- 				"svelte",
+-- 				"htmlangular",
 -- 			},
 -- 			settings = {
 -- 				tailwindCSS = {
