@@ -209,6 +209,7 @@ return {
 	{
 		"catppuccin/nvim",
 		name = "catppuccin",
+		priority = 1000,
 		config = function()
 			require("catppuccin").setup({
 				flavour = "mocha", -- latte, frappe, macchiato, mocha
@@ -277,6 +278,7 @@ return {
 			})
 		end,
 	},
+
 	-- NOTE: Dracula
 	{
 		"Mofiqul/dracula.nvim",
@@ -357,6 +359,7 @@ return {
 			})
 		end,
 	},
+
 	-- NOTE: github
 	{
 		"projekt0n/github-nvim-theme",
@@ -426,10 +429,9 @@ return {
 	{ "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
 	{
 		"baliestri/aura-theme",
-		lazy = false,
-		priority = 1000,
+		lazy = true,
 		config = function(plugin)
-			vim.opt.rtp:append(plugin.dir .. "/packages/neovim")
+			-- vim.opt.rtp:append(plugin.dir .. "/packages/neovim")
 
 			-- Load colorscheme FIRST
 			vim.cmd([[colorscheme aura-dark]])
@@ -441,6 +443,30 @@ return {
 			vim.cmd([[highlight SignColumn ctermbg=none guibg=none]])
 			vim.cmd([[highlight NormalFloat ctermbg=none guibg=none]])
 			vim.cmd([[highlight FloatBorder ctermbg=none guibg=none]])
+		end,
+	},
+
+	{
+		"anAcc22/sakura.nvim",
+		dependencies = "rktjmp/lush.nvim",
+		config = function()
+			vim.opt.background = "dark" -- or "light"
+			vim.api.nvim_create_autocmd("ColorScheme", {
+				pattern = "*",
+				callback = function()
+					-- transparency
+					vim.cmd("hi Normal guibg=NONE ctermbg=NONE")
+					vim.cmd("hi NormalNC guibg=NONE ctermbg=NONE")
+					vim.cmd("hi SignColumn guibg=NONE ctermbg=NONE")
+					vim.cmd("hi EndOfBuffer guibg=NONE ctermbg=NONE")
+					vim.cmd("hi MsgArea guibg=NONE ctermbg=NONE")
+					vim.cmd("hi NvimTreeNormal guibg=NONE ctermbg=NONE")
+					vim.cmd("hi NvimTreeEndOfBuffer guibg=NONE ctermbg=NONE")
+					vim.cmd("hi NvimTreeWinSeparator guibg=NONE ctermbg=NONE")
+					vim.cmd("hi NvimTreeNormalNC guibg=NONE ctermbg=NONE")
+				end,
+			})
+			vim.cmd("colorscheme sakura") -- sets the colorscheme
 		end,
 	},
 }

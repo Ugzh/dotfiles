@@ -44,6 +44,9 @@ return {
 			},
 		})
 
+		vim.api.nvim_set_hl(0, "NvimTreeNormal", { bg = "none" })
+		vim.api.nvim_set_hl(0, "NvimTreeEndOfBuffer", { bg = "none" })
+		vim.api.nvim_set_hl(0, "NvimTreeWinSeparator", { bg = "none" })
 		-- set keymaps
 		local keymap = vim.keymap -- for conciseness
 
