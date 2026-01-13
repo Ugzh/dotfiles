@@ -25,3 +25,5 @@ export KEYTIMEOUT=1
 export PATH=$PATH:/usr/local/go/bin
 export PATH=~/bin:$PATH
 export PATH="$HOME/.local/bin:$PATH"
+export PIPENV_IGNORE_VIRTUALENVS=1
+export PATH="$HOME/.pipenv-venv/bin:$PATH"
