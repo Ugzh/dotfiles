@@ -8,9 +8,7 @@ return {
 		"hrsh7th/cmp-path", -- source for file system paths
 		{
 			"L3MON4D3/LuaSnip",
-			-- follow latest release.
 			version = "v2.*", -- Replace <CurrentMajor> by the latest released major (first number of latest release)
-			-- install jsregexp (optional!).
 			build = "make install_jsregexp",
 		},
 		"saadparwaiz1/cmp_luasnip", -- autocompletion
@@ -21,7 +19,6 @@ return {
 	},
 	config = function()
 		local cmp = require("cmp")
-		-- local luasnip = require("luasnip")
 		local has_luasnip, luasnip = pcall(require, "luasnip")
 		local lspkind = require("lspkind")
 		local colorizer = require("tailwindcss-colorizer-cmp").formatter
@@ -218,7 +215,6 @@ return {
 					border = { "┌", "─", "┐", "│", "┘", "─", "└", "│" },
 				},
 			},
-			-- config nvim cmp to work with snippet engine
 			snippet = {
 				expand = function(args)
 					luasnip.lsp_expand(args.body)
@@ -227,21 +223,12 @@ return {
 			-- autocompletion sources
 			sources = cmp.config.sources({
 				{ name = "luasnip" }, -- snippets
-				{ name = "lazydev" },
+				-- { name = "lazydev" },
 				{ name = "nvim_lsp", priority = 1000 },
 				{ name = "buffer" }, -- text within current buffer
 				{ name = "path" }, -- file system paths
 				{ name = "tailwindcss-colorizer-cmp" },
 			}),
-			-- mapping = cmp.mapping.preset.insert({
-			--     ["<C-k>"] = cmp.mapping.select_prev_item(), -- previous suggestion
-			--     ["<C-j>"] = cmp.mapping.select_next_item(), -- next suggestion
-			--     ["<C-b>"] = cmp.mapping.scroll_docs(-4),
-			--     ["<C-f>"] = cmp.mapping.scroll_docs(4),
-			--     ["<C-Space>"] = cmp.mapping.complete(), -- show completion suggestions
-			--     ["<C-e>"] = cmp.mapping.abort(), -- close completion window
-			--     ["<CR>"] = cmp.mapping.confirm({ select = false }),
-			-- }),
 
 			-- NOTE: ! Experimenting with Customized Mappings ! --
 			mapping = cmp.mapping.preset.insert({
@@ -340,18 +327,8 @@ return {
 
 					return vim_item
 				end,
-				-- format = lspkind.cmp_format({
-				--         maxwidth = 30,
-				--         ellipsis_char = "...",
-				--         before = require("tailwindcss-colorizer-cmp").formatter
-				-- }),
-				-- format = require("tailwindcss-colorizer-cmp").formatter
 			},
 		})
-
-		-- NOTE: Added Ghost text stuff
-		-- Only show ghost text at word boundaries, not inside keywords. Based on idea
-		-- from: https://github.com/hrsh7th/nvim-cmp/issues/2035#issuecomment-2347186210
 
 		local config = require("cmp.config")
 		local toggle_ghost_text = function()
@@ -379,6 +356,5 @@ return {
 		vim.api.nvim_create_autocmd({ "InsertEnter", "CursorMovedI" }, {
 			callback = toggle_ghost_text,
 		})
-		-- ! Ghost text stuff ! --
 	end,
 }

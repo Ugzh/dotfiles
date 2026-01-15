@@ -1,7 +1,3 @@
--- lua/Ugzher/plugins/lsp/lspconfig.lua
--- LSP configuration with all language servers
---
-
 return {
 	"neovim/nvim-lspconfig",
 	event = { "BufReadPre", "BufNewFile" },
@@ -204,6 +200,21 @@ return {
 			on_attach = on_attach,
 		})
 
+		vim.lsp.config("pyright", {
+			capabilities = capabilities,
+			on_attach = on_attach,
+			settings = {
+				python = {
+					analysis = {
+						autoSearchPaths = true,
+						useLibraryCodeForTypes = true,
+						diagnosticMode = "workspace",
+						typeCheckingMode = "basic", -- can be "strict" for more aggressive typing
+					},
+				},
+			},
+		})
+
 		------------------------------------------------------------------------
 		-- ENABLE SERVERS
 		------------------------------------------------------------------------
@@ -218,6 +229,7 @@ return {
 			"tailwindcss",
 			"jsonls",
 			"prismals",
+			"pyright",
 		})
 	end,
 }

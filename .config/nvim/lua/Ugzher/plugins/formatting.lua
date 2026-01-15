@@ -71,6 +71,7 @@ return {
 				prisma = { "prettier" },
 				lua = { "stylua" },
 				go = { "goimports", "gofumpt" },
+				python = { "ruff_organize_imports", "ruff_format" },
 			},
 
 			-------------------------------------------------------------------------
