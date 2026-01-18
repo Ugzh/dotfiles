@@ -1,0 +1,117 @@
+* {
+  min-height: 0;
+  min-width: 0;
+  font-family: Lexend, "JetBrainsMono NFP";
+  font-size: 14px;
+  font-weight: 500;
+}
+
+window#waybar {
+  transition-property: background-color;
+  transition-duration: 0.5s;
+  background-color: rgba(46, 52, 64, 0.85);
+}
+
+#workspaces button {
+  padding: 0.3rem 0.6rem;
+  margin: 0.4rem 0.25rem;
+  border-radius: 6px;
+  background-color: #3b4252; /* Nord nord1 */
+  color: #5e81ac; /* Nord nord4 */
+}
+
+#workspaces button:hover {
+  color: #2e3440; /* Nord nord0 */
+  background-color: #5e81ac; /* Nord nord4 */
+}
+
+#workspaces button.active {
+  background-color: #4c566a; /* Nord nord3 */
+  color: #5e81ac; /* Nord nord8 (Frost Cyan) */
+}
+
+#workspaces button.urgent {
+  background-color: #3b4252;
+  color: #bf616a; /* Nord nord11 (Aurora Red) */
+}
+
+#clock,
+#pulseaudio,
+#custom-logo,
+#custom-power,
+#custom-spotify,
+#custom-notification,
+#cpu,
+#tray,
+#memory,
+#window,
+#mpris,
+#battery {
+  padding: 0.3rem 0.6rem;
+  margin: 0.4rem 0.25rem;
+  border-radius: 6px;
+  background-color: #3b4252; /* Nord nord1 */
+}
+
+#custom-sep {
+  padding: 0px;
+  color: #5e81ac; /* Nord nord3 */
+}
+
+window#waybar.empty #window {
+  background-color: transparent;
+}
+
+#cpu {
+  color: #88c0d0; /* Nord nord7 (Frost Light Mint) */
+}
+
+#memory {
+  color: #88c0d0; /* Nord nord15 (Aurora Purple) */
+}
+
+#clock {
+  color: #88c0d0; /* Nord nord9 (Frost Blue) */
+}
+
+#clock.simpleclock {
+  color: #88c0d0; /* Nord nord4 */
+}
+
+#window {
+  color: #88c0d0; /* Nord nord4 */
+}
+
+#pulseaudio {
+  color: #88c0d0; /* Nord nord13 (Aurora Yellow) */
+}
+
+#pulseaudio.muted {
+  color: #4c566a; /* Nord nord3 (Gray) */
+}
+
+#custom-logo {
+  color: #88c0d0; /* Nord nord8 (Frost Cyan) */
+}
+
+tooltip {
+  background-color: #3b4252; /* Nord nord1 */
+  border: 2px solid #88c0d0; /* Nord nord8 border */
+}
+
+#battery {
+  color: #88c0d0; /* Nord nord15 (Aurora Purple) */
+}
+
+#battery.charging,
+#battery.plugged {
+  color: #88c0d0; /* Nord nord14 (Aurora Green) */
+}
+
+#battery.warning:not(.charging) {
+  color: #88c0d0; /* Nord nord12 (Aurora Orange) */
+}
+
+#battery.critical:not(.charging) {
+  color: #88c0d0; /* Nord nord11 (Aurora Red) */
+}

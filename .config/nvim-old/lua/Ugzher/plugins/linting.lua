@@ -59,15 +59,6 @@ return {
 			return {}
 		end
 
-		-- local function get_js_linters()
-		-- 	if has_biome_config() then
-		-- 		return { "biomejs" }
-		-- 	else
-		-- 		return { "eslint_d" }
-		-- 	end
-		-- end
-		--
-
 		lint.linters_by_ft = {
 			javascript = get_js_linters(),
 			typescript = get_js_linters(),

@@ -6,6 +6,7 @@ return {
     options = {
       mode = "tabs",
       separator_style = "thin",
+      color_icons = false, -- This forces icons to match the tab's background/foreground
     },
   },
 }

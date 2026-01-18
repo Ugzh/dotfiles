@@ -1,3 +1,3 @@
-require("Ugzher.core")
-require("Ugzher.lazy")
+require("ugzher.core")
+require("ugzher.lazy")
 require("current-theme")

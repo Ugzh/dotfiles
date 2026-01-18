@@ -12,5 +12,5 @@ configuration {
     icon-theme:                  "Tela-circle-dracula";
 }
 
-@theme "~/.config/rofi/themes/sakura-theme.rasi"
+@theme "~/.config/rofi/themes/nord-theme.rasi"
 
