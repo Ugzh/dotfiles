@@ -73,4 +73,9 @@ return {
 			end
 		end,
 	},
+	{
+		"rose-pine/neovim",
+		name = "rose-pine",
+		config = function() end,
+	},
 }

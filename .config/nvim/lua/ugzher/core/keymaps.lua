@@ -61,6 +61,7 @@ vim.keymap.set("n", "<leader>sx", "<cmd>close<CR>", { desc = "Close current spli
 
 vim.keymap.set("i", "jk", "<ESC>", { desc = "Escape with jk" })
 --
+vim.keymap.set("n", "gl", vim.diagnostic.open_float)
 -- Copy filepath to the clipboard
 vim.keymap.set("n", "<leader>fp", function()
 	local filePath = vim.fn.expand("%:~") -- Gets the file path relative to the home directory

@@ -14,6 +14,19 @@ return {
 			local opts = { noremap = true, silent = true, buffer = bufnr }
 			local builtin = require("telescope.builtin")
 
+			if client.server_capabilities.definitionProvider then
+				keymap.set("n", "gd", builtin.lsp_definitions, opts)
+			end
+			if client.server_capabilities.referencesProvider then
+				keymap.set("n", "gR", builtin.lsp_references, opts)
+			end
+			if client.server_capabilities.implementationProvider then
+				keymap.set("n", "gi", builtin.lsp_implementations, opts)
+			end
+			if client.server_capabilities.typeDefinitionProvider then
+				keymap.set("n", "gt", builtin.lsp_type_definitions, opts)
+			end
+
 			keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
 			keymap.set("n", "K", vim.lsp.buf.hover, opts)
 			keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
@@ -37,7 +50,7 @@ return {
 			underline = true,
 			update_in_insert = false,
 			severity_sort = true,
-			float = { border = "rounded", source = "always" },
+			float = { border = "rounded", source = true, wrap = true, max_width = 80 },
 		})
 
 		vim.lsp.config("clangd", {
@@ -173,6 +186,19 @@ return {
 			},
 		})
 
+		vim.lsp.config("rust_analyzer", {
+			capabilities = capabilities,
+			on_attach = on_attach,
+			settings = {
+				["rust-analyzer"] = {
+					check = {
+						command = "clippy",
+						extraArgs = { "--no-deps" },
+					},
+				},
+			},
+		})
+
 		vim.lsp.enable({
 			"clangd",
 			"lua_ls",
@@ -184,6 +210,7 @@ return {
 			"tailwindcss",
 			"jsonls",
 			"pyright",
+			"rust_analyzer",
 		})
 	end,
 }

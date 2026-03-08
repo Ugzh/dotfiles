@@ -1,0 +1,107 @@
+@import "./rose-pine.css";
+/* @import "./rose-pine-moon.css"; */
+/* @import "./rose-pine-dawn.css"; */
+* {
+  min-height: 0;
+  min-width: 0;
+  font-family: Lexend, "JetBrainsMono NFP";
+  font-size: 14px;
+  font-weight: 500;
+}
+
+window#waybar {
+  transition-property: background-color;
+  transition-duration: 0.5s;
+  background-color: rgba(25, 23, 36, 0.85); /* base */
+}
+
+#workspaces button {
+  padding: 0.3rem 0.6rem;
+  margin: 0.4rem 0.25rem;
+  border-radius: 6px;
+  background-color: @surface;
+  color: @subtle;
+}
+#workspaces button:hover {
+  color: @base;
+  background-color: @iris;
+}
+#workspaces button.active {
+  background-color: @overlay;
+  color: @iris;
+}
+#workspaces button.urgent {
+  background-color: @surface;
+  color: @love;
+}
+
+#clock,
+#pulseaudio,
+#custom-logo,
+#custom-power,
+#custom-spotify,
+#custom-notification,
+#cpu,
+#tray,
+#memory,
+#window,
+#mpris,
+#battery {
+  padding: 0.3rem 0.6rem;
+  margin: 0.4rem 0.25rem;
+  border-radius: 6px;
+  background-color: @surface;
+}
+
+#custom-sep {
+  padding: 0px;
+  color: @muted;
+}
+
+window#waybar.empty #window {
+  background-color: transparent;
+}
+
+#cpu {
+  color: @foam;
+}
+#memory {
+  color: @iris;
+}
+#clock {
+  color: @rose;
+}
+#clock.simpleclock {
+  color: @rose;
+}
+#window {
+  color: @text;
+}
+#pulseaudio {
+  color: @gold;
+}
+#pulseaudio.muted {
+  color: @muted;
+}
+#custom-logo {
+  color: @pine;
+}
+
+tooltip {
+  background-color: @surface;
+  border: 2px solid @iris;
+}
+
+#battery {
+  color: @foam;
+}
+#battery.charging,
+#battery.plugged {
+  color: @pine;
+}
+#battery.warning:not(.charging) {
+  color: @gold;
+}
+#battery.critical:not(.charging) {
+  color: @love;
+}

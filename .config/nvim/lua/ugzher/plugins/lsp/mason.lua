@@ -41,6 +41,7 @@ return {
 				"jsonls",
 				"pyright",
 				"biome",
+				"rust_analyzer",
 			},
 		})
 
@@ -53,6 +54,7 @@ return {
 				"pylint",
 				"clangd",
 				"biome",
+				"rustfmt",
 			},
 		})
 	end,

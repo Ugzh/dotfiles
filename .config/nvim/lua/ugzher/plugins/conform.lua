@@ -7,8 +7,12 @@ return {
 		conform.setup({
 			formatters_by_ft = {
 				lua = { "stylua" },
-				python = { "isort" },
-				rust = { "rustfmt", lsp_format = "fallback" },
+				python = { "ruff_organize_imports", "ruff_format" },
+				rust = {
+					"rustfmt",
+					args = { "--config", "max_width=100", "--config", "wrap_comments=true" },
+					lsp_format = "fallback",
+				},
 				javascript = { "prettier", "biome", stop_after_first = true },
 				typescript = { "prettier", "biome", stop_after_first = true },
 				html = { "prettier", "biome", stop_after_first = true },
