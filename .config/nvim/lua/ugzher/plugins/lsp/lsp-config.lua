@@ -14,6 +14,9 @@ return {
 			local opts = { noremap = true, silent = true, buffer = bufnr }
 			local builtin = require("telescope.builtin")
 
+			client.server_capabilities.documentFormattingProvider = false
+			client.server_capabilities.documentRangeFormattingProvider = false
+
 			if client.server_capabilities.definitionProvider then
 				keymap.set("n", "gd", builtin.lsp_definitions, opts)
 			end
@@ -122,10 +125,14 @@ return {
 			root_dir = vim.fs.root(0, { "package.json", "tsconfig.json", ".git" }),
 			capabilities = capabilities,
 			on_attach = on_attach,
+			init_options = {
+				hostInfo = "neovim",
+				maxTsServerMemory = 4096,
+			},
 		})
 
 		vim.lsp.config("angularls", {
-			root_dir = vim.fs.root(0, { "angular.json", "project.json" }),
+			root_markers = { "angular.json" },
 			capabilities = capabilities,
 			on_attach = on_attach,
 		})
@@ -179,8 +186,8 @@ return {
 					analysis = {
 						autoSearchPaths = true,
 						useLibraryCodeForTypes = true,
-						diagnosticMode = "workspace",
-						typeCheckingMode = "basic", -- can be "strict" for more aggressive typing
+						diagnosticMode = "openFilesOnly",
+						typeCheckingMode = "basic",
 					},
 				},
 			},

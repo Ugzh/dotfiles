@@ -24,6 +24,26 @@ return {
 				prisma = { "prettier" },
 				go = { "goimports", "gofumpt", stop_after_first = true },
 			},
+			formatters = {
+				prettier = {
+					prepend_args = { "--print-width", "120" },
+					condition = function(self, ctx)
+						return vim.fs.find({
+							".prettierrc",
+							".prettierrc.json",
+							".prettierrc.js",
+							"prettier.config.js",
+						}, { path = ctx.filename, upward = true })[1] ~= nil
+					end,
+				},
+				biome = {
+					condition = function(self, ctx)
+						return vim.fs.find({
+							"biome.json",
+						}, { path = ctx.filename, upward = true })[1] ~= nil
+					end,
+				},
+			},
 		})
 
 		vim.api.nvim_create_autocmd("BufWritePre", {

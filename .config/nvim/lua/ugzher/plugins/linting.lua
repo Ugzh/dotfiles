@@ -25,7 +25,6 @@ return {
 			return root or vim.fn.getcwd()
 		end
 
-		-- Check if biome config exists in project root
 		local function has_biome_config()
 			local root = find_project_root()
 			local biome_files = {

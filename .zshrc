@@ -27,3 +27,10 @@ export PATH=~/bin:$PATH
 export PATH="$HOME/.local/bin:$PATH"
 export PIPENV_IGNORE_VIRTUALENVS=1
 export PATH="$HOME/.pipenv-venv/bin:$PATH"
+
+# bun completions
+[ -s "/home/ugzher/.bun/_bun" ] && source "/home/ugzher/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
