@@ -3,7 +3,6 @@ export ZSH="$HOME/.oh-my-zsh"
 plugins=(zsh-autosuggestions zsh-syntax-highlighting zsh-history-substring-search)
 
 source $ZSH/oh-my-zsh.sh
-alias cd="z"
 alias ls="eza --icons=always"
 alias fzf='fzf --preview "bat --color=always --style=numbers --line-range=:500 {}"'
 alias cat="bat"

@@ -1,13 +1,15 @@
-# Nord Polar Night Starship Configuration
+# Wallust Generated Starship Configuration
+
+# Fixed the formatting blocks so the arrows perfectly blend into the next background color
 format = """\
-[](fg:#1F1D2E)\
+[](fg:#A17493)\
 $username\
-[](fg:#1F1D2E bg:#26233A)\
+[](fg:#A17493 bg:#918074)\
 $directory\
-[](fg:#26233A bg:#403D52)\
+[](fg:#918074 bg:#66857C)\
 $git_branch\
 $git_status\
-[](fg:#403D52 bg:#1F1D2E )\
+[](fg:#66857C bg:#03040A)\
 $all\
 $cmd_duration\
 $jobs\
@@ -21,12 +23,12 @@ disabled = true
 
 [username]
 show_always = true
-style_user = "fg:#9ccfd8 bg:#1f1d2e"
-style_root = "fg:#1f1d2e bg:#1f1d2e"
+style_user = "fg:#020308 bg:#A17493"
+style_root = "fg:#020308 bg:#222431"
 format = '[ ]($style)'
 
 [directory]
-style = "fg:#c4a7e7 bg:#26233a"
+style = "fg:#020308 bg:#918074"
 format = "[ $path ]($style)"
 truncation_length = 3
 truncation_symbol = "…/"
@@ -41,11 +43,11 @@ truncation_symbol = "…/"
 
 [git_branch]
 symbol = ""
-style = "fg:#31748f bg:#403d52"
+style = "fg:#020308 bg:#66857C"
 format = '[ $symbol $branch(:$remote_branch) ]($style)'
 
 [git_status]
-style = "fg:#9ccfd8 bg:#403d52"
+style = "fg:#020308 bg:#66857C"
 ahead = "⇡${count}"
 diverged = "⇕⇡${ahead_count}⇣${behind_count}"
 behind = "⇣${count}"
@@ -54,80 +56,80 @@ format = '[$all_status$ahead_behind ]($style)'
 
 [aws]
 symbol = " "
-style = "fg:#eb6f92 bg:#1f1d2e"
+style = "fg:#222431 bg:#03040A"
 format = '[ $symbol ($version )]($style)'
 
 [c]
 symbol = ""
-style = "fg:#9ccfd8 bg:#1f1d2e"
+style = "fg:#A17493 bg:#03040A"
 format = '[ $symbol ($version )]($style)'
 
 [docker_context]
 symbol = ""
-style = "fg:#9ccfd8 bg:#1f1d2e"
+style = "fg:#A17493 bg:#03040A"
 format = '[ $symbol $context]($style) $path '
 
 [elixir]
 symbol = ""
-style = "fg:#c4a7e7 bg:#1f1d2e"
+style = "fg:#918074 bg:#03040A"
 format = '[ $symbol ($version )]($style)'
 
 [golang]
 symbol = ""
-style = "fg:#9ccfd8 bg:#1f1d2e"
+style = "fg:#A17493 bg:#03040A"
 format = '[ $symbol ($version )]($style)'
 
 [haskell]
 symbol = "λ"
-style = "fg:#c4a7e7 bg:#1f1d2e"
+style = "fg:#918074 bg:#03040A"
 format = '[ $symbol ($version )]($style)'
 
 [java]
 symbol = ""
-style = "fg:#f6c177 bg:#1f1d2e"
+style = "fg:#778093 bg:#03040A"
 format = '[ $symbol ($version )]($style)'
 
 [lua]
 symbol = ""
-style = "fg:#9ccfd8 bg:#1f1d2e"
+style = "fg:#A17493 bg:#03040A"
 format = '[ $symbol ($version )]($style)'
 
 [nodejs]
 symbol = ""
-style = "fg:#31748f bg:#1f1d2e"
+style = "fg:#66857C bg:#03040A"
 format = '[ $symbol ($version )]($style)'
 
 [python]
 symbol = ""
-style = "fg:#f6c177 bg:#1f1d2e"
+style = "fg:#778093 bg:#03040A"
 format = '[ $symbol ($version )]($style)'
 
 [rust]
 symbol = ""
-style = "fg:#eb6f92 bg:#1f1d2e"
+style = "fg:#222431 bg:#03040A"
 format = '[ $symbol ($version )]($style)'
 
 [bun]
 symbol = ""
-style = "fg:#f6c177 bg:#1f1d2e"
+style = "fg:#778093 bg:#03040A"
 format = '[ $symbol ($version )]($style)'
 
 [cmd_duration]
 min_time = 1
-style = "fg:#f6c177 bg:#1f1d2e"
+style = "fg:#778093 bg:#03040A"
 format = "[ $duration]($style)"
 
 [jobs]
 symbol = "華"
-style = "fg:#EBCB8B bg:#3B4252"
+style = "fg:#778093 bg:#03040A"
 format = "[ $symbol]($style)"
 
 [time]
 disabled = true
 time_format = "%R"
-style = "fg:#f6c177 bg:#1f1d2e"
-format = '[](fg:#1f1d2e $style)[  $time ](fg:#9ccfd8 $style)'
+style = "fg:#778093 bg:#03040A"
+format = '[](fg:#03040A $style)[  $time ](fg:#A17493 $style)'
 
 [character]
-success_symbol = "[ ](fg:#1f1d2e)"
-error_symbol = "[ ](fg:#eb6f92)"
+success_symbol = "[ ](fg:#4B5162)"
+error_symbol = "[ ](fg:#222431)"

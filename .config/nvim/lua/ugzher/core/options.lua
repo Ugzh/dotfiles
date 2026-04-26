@@ -45,3 +45,4 @@ vim.opt.mouse = "a"
 vim.g.editorconfig = true
 
 vim.opt.termguicolors = true
+vim.opt.conceallevel = 2

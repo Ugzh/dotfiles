@@ -1,0 +1,43 @@
+* {
+    font-family: "Iosevka Nerd Font", monospace;
+    font-size: 13px; /* Increased from 13px */
+    font-weight: bold;
+    border: none;
+}
+
+window#waybar {
+    background-color: transparent;
+}
+
+/* Island Containers */
+.modules-left, .modules-center, .modules-right{
+    background-color: alpha(#03040A, 0.8);
+    /* Desaturating the border by using alpha on the color */
+    border: 1.5px solid alpha(#A589D9, 0.6); 
+    border-radius: 12px;
+    padding: 4px 16px; /* Increased padding significantly */
+    margin-top: 5px;   /* Added some air at the top */
+    margin-bottom: 2px;
+}
+
+/* Module Spacing */
+#custom-arch, #workspaces, #mpris, #window, #cpu, #memory, #clock, #network, #custom-bluetooth, #battery, #custom-openbracket, #custom-closebracket, #custom-split {
+    color: #F7BA93;
+    padding: 0 4px; /* More space between text and brackets */
+}
+
+/* Muted accent colors */
+#workspaces button.active { color: #A589D9; }
+#pulseaudio { 
+    /* color: alpha(#A3605E, 0.8);  */
+        color: #F7BA93;
+
+
+    margin: 0; /* More space for the volume pod */
+    /* margin-top: 5px;  */
+}
+
+/* Brackets - subtle coloring */
+#custom-openbracket, #custom-closebracket, #custom-split {
+    color: alpha(#F7BA93, 0.3); /* Makes brackets look "dull" and recessed */
+}

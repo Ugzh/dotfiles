@@ -1,0 +1,92 @@
+/* Wallust Dynamic Island Style */
+
+* {
+    font-family: "Iosevka Nerd Font", "JetBrainsMono Nerd Font";
+    font-size: 14px;
+    font-weight: bold;
+}
+
+window#waybar {
+    background-color: transparent;
+}
+
+/* The "Islands": Left, Center, and Right Containers */
+.modules-left {
+    margin: 5px 0 0 10px;
+    padding: 0 5px;
+    background-color: alpha(#03040A, 0.85);
+    border: 2px solid #838199;
+    border-radius: 4px;
+}
+
+.modules-center {
+    margin: 5px 0 0 0;
+    padding: 0 5px;
+    background-color: alpha(#03040A, 0.85);
+    border: 2px solid #838199;
+    border-radius: 4px;
+}
+
+.modules-right {
+    margin: 5px 10px 0 0;
+    padding: 0 5px;
+    background-color: alpha(#03040A, 0.85);
+    border: 2px solid #838199;
+    border-radius: 4px;
+}
+
+/* Module General Styles */
+#custom-arch, #workspaces, #mpris, #window, #cpu, #memory, #clock, #network, #battery, #custom-openbracket, #custom-closebracket, #custom-split {
+    color: #D0D2E0;
+    padding: 0 4px;
+}
+
+/* Specific Accents */
+#custom-arch { color: #80849F; }
+#workspaces button.active { color: #838199; }
+#workspaces button:hover { color: #82829C; }
+
+#mpris.playing {
+    color: #03040A;
+    background-color: #828297; /* Greenish when playing */
+    border-radius: 2px;
+    margin: 4px 0;
+}
+
+#battery.charging { color: #828297; }
+#battery.critical { color: #7E8095; animation: blink 0.5s infinite alternate; }
+
+@keyframes blink { to { opacity: 0.5; } }
+
+/* /* NO @IMPORT ALLOWED HERE */ */
+/* * { */
+/*     font-family: "JetBrainsMono Nerd Font", sans-serif; */
+/*     font-size: 13px; */
+/*     border: none; */
+/*     border-radius: 0; */
+/* } */
+/**/
+/* window#waybar { */
+/*     background-color: transparent; */
+/* } */
+/**/
+/* #workspaces, #window, #cpu, #memory, #battery, #pulseaudio, #clock, #tray { */
+/*     background-color: alpha(#03040A, 0.8); */
+/*     color: #D0D2E0; */
+/*     border: 1px solid alpha(#838199, 0.4); */
+/*     border-radius: 100px; */
+/*     padding: 0 15px; */
+/*     margin: 6px 4px; */
+/* } */
+/**/
+/* #workspaces button.active { */
+/*     background-color: #838199; */
+/*     color: #03040A; */
+/*     font-weight: bold; */
+/* } */
+/**/
+/* #cpu { color: #828297; } */
+/* #memory { color: #80829A; } */
+/* #pulseaudio { color: #838199; } */
+/* #battery { color: #82829C; } */
+/* #clock { color: #80849F; } */

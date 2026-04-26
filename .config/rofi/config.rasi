@@ -1,16 +1,15 @@
-// Config //
 configuration {
     modi:                        "drun,filebrowser,window";
     show-icons:                  true;
-    display-drun:                " ";
-    display-run:                 " ";
-    display-filebrowser:         " ";
-    display-window:              " ";
+    display-drun:                " ";
+    display-run:                 " ";
+    display-filebrowser:         " ";
+    display-window:              " ";
     drun-display-format:         "{name}";
-    window-format:               "{w}{t}";
-    font:                        "JetBrainsMono Nerd Font 10";
+    window-format:               "{w} {t}";
+    font:                        "Lilex Nerd Font 12";
     icon-theme:                  "Tela-circle-dracula";
 }
 
-@theme "~/.config/rofi/themes/rose-pine-theme.rasi"
-
+/* This is where you swap between light and dark */
+@theme "~/.config/rofi/themes/gruvbox-light.rasi"

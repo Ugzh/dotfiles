@@ -26,7 +26,7 @@ return {
 			"vim",
 			"dockerfile",
 			"kubernetes",
-			"c++",
+			"cpp",
 			"gitignore",
 			"query",
 			"vimdoc",

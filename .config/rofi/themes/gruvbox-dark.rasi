@@ -1,0 +1,85 @@
+* {
+    /* Gruvbox Dark Soft Colors */
+    bg:             #32302f;
+    bg-alt:         #282828;
+    fg:             #ebdbb2;
+    fg-alt:         #a89984;
+    accent:         #689d6a; /* Cyan/Aqua */
+    urgent:         #cc241d;
+    
+    background-color: transparent;
+    text-color:       @fg;
+    margin:           0;
+    padding:          0;
+    spacing:          0;
+}
+
+window {
+    background-color: @bg;
+    border:           2px;
+    border-color:     @accent;
+    border-radius:    12px;
+    width:            600px;
+    padding:          20px;
+}
+
+mainbox {
+    spacing: 15px;
+}
+
+inputbar {
+    background-color: @bg-alt;
+    border-radius:    8px;
+    padding:          12px 15px;
+    spacing:          10px;
+    children:         [ prompt, entry ];
+}
+
+prompt {
+    text-color: @accent;
+    font:       "Lilex Nerd Font 14";
+}
+
+entry {
+    placeholder:       "Search...";
+    placeholder-color: @fg-alt;
+    text-color:        @fg;
+}
+
+listview {
+    columns:       1;
+    lines:         7;
+    spacing:       5px;
+    scrollbar:     false;
+    border:        0px;
+}
+
+element {
+    padding:       10px 15px;
+    border-radius: 8px;
+    spacing:       10px;
+    children:      [ element-icon, element-text ];
+}
+
+element-icon {
+    size: 24px;
+}
+
+element-text {
+    vertical-align: 0.5;
+}
+
+element normal.normal {
+    background-color: transparent;
+    text-color:       @fg;
+}
+
+element alternate.normal {
+    background-color: transparent;
+    text-color:       @fg;
+}
+
+element selected.normal {
+    background-color: @accent;
+    text-color:       @bg;
+}

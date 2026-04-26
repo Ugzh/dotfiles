@@ -28,6 +28,7 @@ return {
 			ensure_installed = {
 				"lua_ls",
 				"ts_ls",
+				-- "tsgo",
 				"html",
 				"cssls",
 				"tailwindcss",
@@ -55,6 +56,8 @@ return {
 				"clangd",
 				"biome",
 				"rustfmt",
+				"ruff",
+				"pyright",
 			},
 		})
 	end,

@@ -114,7 +114,19 @@ return {
 				},
 			},
 		})
-
+		-- vim.lsp.config("tsgo", {
+		-- 	cmd = { "tsgo", "--lsp", "--stdio" },
+		-- 	filetypes = {
+		-- 		"javascript",
+		-- 		"javascriptreact",
+		-- 		"typescript",
+		-- 		"typescriptreact",
+		-- 	},
+		-- 	root_dir = vim.fs.root(0, { "package.json", "tsconfig.json", ".git" }),
+		-- 	capabilities = capabilities,
+		-- 	on_attach = on_attach,
+		-- })
+		--
 		vim.lsp.config("ts_ls", {
 			filetypes = {
 				"javascript",
@@ -127,7 +139,15 @@ return {
 			on_attach = on_attach,
 			init_options = {
 				hostInfo = "neovim",
-				maxTsServerMemory = 4096,
+				maxTsServerMemory = 8192,
+				preferences = {
+					excludeDirectories = {
+						"**/node_modules",
+						"**/dist",
+						"**/coverage",
+						"**/.git",
+					},
+				},
 			},
 		})
 
@@ -210,6 +230,7 @@ return {
 			"clangd",
 			"lua_ls",
 			"gopls",
+			-- "tsgo",
 			"ts_ls",
 			"angularls",
 			"html",

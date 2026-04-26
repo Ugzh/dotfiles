@@ -2,13 +2,13 @@ return {
 	"windwp/nvim-autopairs",
 	event = "InsertEnter",
 	config = function()
-		local autopairs = require("nvim-autopairs") -- import nvim-autopairs
+		local autopairs = require("nvim-autopairs")
 
 		autopairs.setup({
 			check_ts = true,
 			ts_config = {
 				lua = { "string" },
-				javascript = { "template_string" }, -- dont add pairs in javscript template_string treesitter nodes
+				javascript = { "template_string" },
 				java = false,
 			},
 		})
