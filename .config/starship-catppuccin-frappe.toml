@@ -1,0 +1,134 @@
+# Catppuccin Frappe Starship Configuration
+
+format = """\
+[](fg:#ca9ee6)\
+$username\
+[](fg:#ca9ee6 bg:#a5adce)\
+$directory\
+[](fg:#a5adce bg:#81c8be)\
+$git_branch\
+$git_status\
+[](fg:#81c8be bg:#232634)\
+$all\
+$cmd_duration\
+$jobs\
+$time\
+$character"""
+
+add_newline = true
+
+[line_break]
+disabled = true
+
+[username]
+show_always = true
+style_user = "fg:#303446 bg:#ca9ee6"
+style_root = "fg:#303446 bg:#e78284"
+format = '[ ]($style)'
+
+[directory]
+style = "fg:#303446 bg:#a5adce"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[directory.substitutions]
+"~" = " ~"
+"Documents" = " "
+"Downloads" = " "
+"Music" = " "
+"Pictures" = " "
+"Videos" = " "
+
+[git_branch]
+symbol = ""
+style = "fg:#303446 bg:#81c8be"
+format = '[ $symbol $branch(:$remote_branch) ]($style)'
+
+[git_status]
+style = "fg:#303446 bg:#81c8be"
+ahead = "⇡${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+behind = "⇣${count}"
+deleted = "x"
+format = '[$all_status$ahead_behind ]($style)'
+
+[aws]
+symbol = " "
+style = "fg:#303446 bg:#232634"
+format = '[ $symbol ($version )]($style)'
+
+[c]
+symbol = ""
+style = "fg:#ca9ee6 bg:#232634"
+format = '[ $symbol ($version )]($style)'
+
+[docker_context]
+symbol = ""
+style = "fg:#ca9ee6 bg:#232634"
+format = '[ $symbol $context]($style) $path '
+
+[elixir]
+symbol = ""
+style = "fg:#a5adce bg:#232634"
+format = '[ $symbol ($version )]($style)'
+
+[golang]
+symbol = ""
+style = "fg:#ca9ee6 bg:#232634"
+format = '[ $symbol ($version )]($style)'
+
+[haskell]
+symbol = "λ"
+style = "fg:#a5adce bg:#232634"
+format = '[ $symbol ($version )]($style)'
+
+[java]
+symbol = ""
+style = "fg:#babbf1 bg:#232634"
+format = '[ $symbol ($version )]($style)'
+
+[lua]
+symbol = ""
+style = "fg:#ca9ee6 bg:#232634"
+format = '[ $symbol ($version )]($style)'
+
+[nodejs]
+symbol = ""
+style = "fg:#81c8be bg:#232634"
+format = '[ $symbol ($version )]($style)'
+
+[python]
+symbol = ""
+style = "fg:#babbf1 bg:#232634"
+format = '[ $symbol ($version )]($style)'
+
+[rust]
+symbol = ""
+style = "fg:#303446 bg:#232634"
+format = '[ $symbol ($version )]($style)'
+
+[bun]
+symbol = ""
+style = "fg:#babbf1 bg:#232634"
+format = '[ $symbol ($version )]($style)'
+
+[cmd_duration]
+min_time = 1
+style = "fg:#babbf1 bg:#232634"
+format = "[ $duration]($style)"
+
+[jobs]
+symbol = "華"
+style = "fg:#babbf1 bg:#232634"
+format = "[ $symbol]($style)"
+
+[time]
+disabled = true
+time_format = "%R"
+style = "fg:#babbf1 bg:#232634"
+format = '[](fg:#232634 $style)[  $time ](fg:#ca9ee6 $style)'
+
+[character]
+success_symbol = "[ ](fg:#626880)"
+error_symbol = "[ ](fg:#e78284)"

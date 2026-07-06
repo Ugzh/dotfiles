@@ -5,6 +5,7 @@ return {
 		{ "hrsh7th/cmp-nvim-lsp", lazy = false },
 		{ "antosha417/nvim-lsp-file-operations", config = true },
 		{ "folke/neodev.nvim", opts = {} },
+		{ "b0o/SchemaStore.nvim" },
 	},
 	config = function()
 		local cmp_nvim_lsp = require("cmp_nvim_lsp")
@@ -36,7 +37,7 @@ return {
 			keymap.set({ "n", "v" }, "<leader>vca", vim.lsp.buf.code_action, opts)
 			keymap.set("n", "<leader>d", vim.diagnostic.open_float, opts)
 			keymap.set("n", "<leader>D", builtin.diagnostics, opts)
-			keymap.set("n", "<leader>rs", "<cmd>LspRestart<CR>", opts)
+			keymap.set("n", "<leader>rs", "<cmd>lsp restart<CR>", opts)
 		end
 
 		local capabilities = cmp_nvim_lsp.default_capabilities()
@@ -128,6 +129,8 @@ return {
 		-- })
 		--
 		vim.lsp.config("ts_ls", {
+			root_markers = { "package.json", "tsconfig.json", ".git" },
+			cmd = { "typescript-language-server", "--stdio" },
 			filetypes = {
 				"javascript",
 				"javascriptreact",
@@ -141,21 +144,65 @@ return {
 				hostInfo = "neovim",
 				maxTsServerMemory = 8192,
 				preferences = {
-					excludeDirectories = {
-						"**/node_modules",
-						"**/dist",
-						"**/coverage",
-						"**/.git",
-					},
+					includePackageJsonAutoImports = "on",
+					includeCompletionsForModuleExports = true,
+					includeCompletionsWithInsertText = true,
 				},
+			},
+			flags = {
+				debounce_text_changes = 150,
 			},
 		})
 
-		vim.lsp.config("angularls", {
-			root_markers = { "angular.json" },
-			capabilities = capabilities,
-			on_attach = on_attach,
-		})
+		-- vim.lsp.config("ts_ls", {
+		-- 	root_markers = { "package.json", "tsconfig.json", ".git" },
+		-- 	cmd = { "typescript-language-server", "--stdio" },
+		-- 	filetypes = {
+		-- 		"javascript",
+		-- 		"javascriptreact",
+		-- 		"typescript",
+		-- 		"typescriptreact",
+		-- 	},
+		-- 	root_dir = vim.fs.root(0, { "package.json", "tsconfig.json", ".git" }),
+		-- 	capabilities = capabilities,
+		-- 	on_attach = on_attach,
+		-- 	init_options = {
+		-- 		hostInfo = "neovim",
+		-- 		maxTsServerMemory = 8192,
+		-- 	},
+		-- 	settings = {
+		-- 		typescript = {
+		-- 			tsserver_max_memory = 8192,
+		-- 			suggest = {
+		-- 				includeCompletionsForModuleExports = true,
+		-- 				includeCompletionsWithInsertText = true,
+		-- 			},
+		-- 		},
+		-- 		javascript = {
+		-- 			suggest = {
+		-- 				includeCompletionsForModuleExports = true,
+		-- 				includeCompletionsWithInsertText = true,
+		-- 			},
+		-- 		},
+		-- 	},
+		-- 	flags = {
+		-- 		debounce_text_changes = 150,
+		-- 	},
+		-- })
+
+		-- vim.lsp.config("angularls", {
+		-- 	root_markers = { "angular.json", "nx.json" },
+		--
+		-- 	on_new_config = function(new_config, new_root_dir)
+		-- 		if not new_root_dir then
+		-- 			new_config.enabled = false
+		-- 		end
+		-- 	end,
+		--
+		-- 	single_file_support = false,
+		-- 	capabilities = capabilities,
+		-- 	on_attach = on_attach,
+		-- })
 
 		vim.lsp.config("html", {
 			filetypes = { "html", "htmlangular" },
@@ -226,10 +273,25 @@ return {
 			},
 		})
 
+		vim.lsp.config("yamlls", {
+			capabilities = capabilities,
+			on_attach = on_attach,
+			settings = {
+				yaml = {
+					schemaStore = {
+						enable = false,
+						url = "",
+					},
+					schemas = require("schemastore").yaml.schemas(),
+				},
+			},
+		})
+
 		vim.lsp.enable({
 			"clangd",
 			"lua_ls",
 			"gopls",
+			"yamlls",
 			-- "tsgo",
 			"ts_ls",
 			"angularls",

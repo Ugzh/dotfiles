@@ -1,0 +1,134 @@
+# Catppuccin Mocha Starship Configuration
+
+format = """\
+[](fg:#cba6f7)\
+$username\
+[](fg:#cba6f7 bg:#a6adc8)\
+$directory\
+[](fg:#a6adc8 bg:#94e2d5)\
+$git_branch\
+$git_status\
+[](fg:#94e2d5 bg:#11111b)\
+$all\
+$cmd_duration\
+$jobs\
+$time\
+$character"""
+
+add_newline = true
+
+[line_break]
+disabled = true
+
+[username]
+show_always = true
+style_user = "fg:#1e1e2e bg:#cba6f7"
+style_root = "fg:#1e1e2e bg:#f38ba8"
+format = '[ ]($style)'
+
+[directory]
+style = "fg:#1e1e2e bg:#a6adc8"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[directory.substitutions]
+"~" = " ~"
+"Documents" = " "
+"Downloads" = " "
+"Music" = " "
+"Pictures" = " "
+"Videos" = " "
+
+[git_branch]
+symbol = ""
+style = "fg:#1e1e2e bg:#94e2d5"
+format = '[ $symbol $branch(:$remote_branch) ]($style)'
+
+[git_status]
+style = "fg:#1e1e2e bg:#94e2d5"
+ahead = "⇡${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+behind = "⇣${count}"
+deleted = "x"
+format = '[$all_status$ahead_behind ]($style)'
+
+[aws]
+symbol = " "
+style = "fg:#1e1e2e bg:#11111b"
+format = '[ $symbol ($version )]($style)'
+
+[c]
+symbol = ""
+style = "fg:#cba6f7 bg:#11111b"
+format = '[ $symbol ($version )]($style)'
+
+[docker_context]
+symbol = ""
+style = "fg:#cba6f7 bg:#11111b"
+format = '[ $symbol $context]($style) $path '
+
+[elixir]
+symbol = ""
+style = "fg:#a6adc8 bg:#11111b"
+format = '[ $symbol ($version )]($style)'
+
+[golang]
+symbol = ""
+style = "fg:#cba6f7 bg:#11111b"
+format = '[ $symbol ($version )]($style)'
+
+[haskell]
+symbol = "λ"
+style = "fg:#a6adc8 bg:#11111b"
+format = '[ $symbol ($version )]($style)'
+
+[java]
+symbol = ""
+style = "fg:#b4befe bg:#11111b"
+format = '[ $symbol ($version )]($style)'
+
+[lua]
+symbol = ""
+style = "fg:#cba6f7 bg:#11111b"
+format = '[ $symbol ($version )]($style)'
+
+[nodejs]
+symbol = ""
+style = "fg:#94e2d5 bg:#11111b"
+format = '[ $symbol ($version )]($style)'
+
+[python]
+symbol = ""
+style = "fg:#b4befe bg:#11111b"
+format = '[ $symbol ($version )]($style)'
+
+[rust]
+symbol = ""
+style = "fg:#1e1e2e bg:#11111b"
+format = '[ $symbol ($version )]($style)'
+
+[bun]
+symbol = ""
+style = "fg:#b4befe bg:#11111b"
+format = '[ $symbol ($version )]($style)'
+
+[cmd_duration]
+min_time = 1
+style = "fg:#b4befe bg:#11111b"
+format = "[ $duration]($style)"
+
+[jobs]
+symbol = "華"
+style = "fg:#b4befe bg:#11111b"
+format = "[ $symbol]($style)"
+
+[time]
+disabled = true
+time_format = "%R"
+style = "fg:#b4befe bg:#11111b"
+format = '[](fg:#11111b $style)[  $time ](fg:#cba6f7 $style)'
+
+[character]
+success_symbol = "[ ](fg:#585b70)"
+error_symbol = "[ ](fg:#f38ba8)"

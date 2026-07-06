@@ -1,29 +1,37 @@
 return {
 	{
-		"ellisonleao/gruvbox.nvim",
+		"catppuccin/nvim",
+		name = "catppuccin",
+		priority = 1000,
 		config = function()
-			require("gruvbox").setup({
-				terminal_colors = true,
-				undercurl = true,
-				underline = true,
-				bold = true,
-				italic = {
-					strings = true,
-					emphasis = true,
-					comments = true,
-					operators = false,
-					folds = true,
+			require("catppuccin").setup({
+				flavour = "mocha",
+				background = { light = "frappe", dark = "mocha" },
+				transparent_background = true,
+				term_colors = true,
+				integrations = {
+					treesitter = true,
+					native_lsp = {
+						enabled = true,
+						underlines = {
+							errors = { "undercurl" },
+							hints = { "undercurl" },
+							warnings = { "undercurl" },
+							information = { "undercurl" },
+						},
+					},
+					gitsigns = true,
+					telescope = true,
+					lualine = true,
+					mini = true,
 				},
-				strikethrough = true,
-				invert_selection = false,
-				invert_signs = false,
-				invert_tabline = false,
-				inverse = true,
-				contrast = "soft",
-				palette_overrides = {},
-				overrides = {},
-				dim_inactive = false,
-				transparent_mode = false,
+			})
+			vim.api.nvim_create_autocmd("ColorScheme", {
+				pattern = "catppuccin",
+				callback = function()
+					vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
+					vim.api.nvim_set_hl(0, "NormalNC", { bg = "none" })
+				end,
 			})
 		end,
 	},

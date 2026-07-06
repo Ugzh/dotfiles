@@ -12,4 +12,4 @@ configuration {
 }
 
 /* This is where you swap between light and dark */
-@theme "~/.config/rofi/themes/gruvbox-light.rasi"
+@theme "~/.config/rofi/themes/catppuccin-mocha.rasi"
