@@ -1,0 +1,58 @@
+#!/bin/sh
+
+set -eu
+
+runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
+pid_file="$runtime_dir/wf-recorder-toggle.pid"
+output_file_state="$runtime_dir/wf-recorder-toggle.output"
+log_file="$runtime_dir/wf-recorder-toggle.log"
+
+notify() {
+    notify-send --app-name="Capture vidéo" "$1" "$2"
+}
+
+if [ -f "$pid_file" ]; then
+    recorder_pid=$(sed -n '1p' "$pid_file")
+
+    if [ -n "$recorder_pid" ] && kill -0 "$recorder_pid" 2>/dev/null; then
+        kill -INT "$recorder_pid"
+
+        attempt=0
+        while kill -0 "$recorder_pid" 2>/dev/null && [ "$attempt" -lt 100 ]; do
+            sleep 0.1
+            attempt=$((attempt + 1))
+        done
+
+        recorded_file=$(sed -n '1p' "$output_file_state" 2>/dev/null || true)
+        rm -f "$pid_file" "$output_file_state"
+        notify "Enregistrement terminé" "$recorded_file"
+        exit 0
+    fi
+
+    rm -f "$pid_file" "$output_file_state"
+fi
+
+recordings_dir="$HOME/Videos/Captures"
+mkdir -p "$recordings_dir"
+
+timestamp=$(date '+%Y-%m-%d_%H-%M-%S')
+recorded_file="$recordings_dir/Capture_$timestamp.mp4"
+
+/home/Ugzher/.local/bin/wf-recorder \
+    --file "$recorded_file" \
+    --codec libopenh264 \
+    --codec-param complexity=0 \
+    >"$log_file" 2>&1 &
+recorder_pid=$!
+
+printf '%s\n' "$recorder_pid" >"$pid_file"
+printf '%s\n' "$recorded_file" >"$output_file_state"
+
+sleep 0.5
+if kill -0 "$recorder_pid" 2>/dev/null; then
+    notify "Enregistrement démarré" "Appuie de nouveau sur Super+Alt+R pour arrêter."
+else
+    rm -f "$pid_file" "$output_file_state"
+    notify "Échec de l’enregistrement" "Journal : $log_file"
+    exit 1
+fi

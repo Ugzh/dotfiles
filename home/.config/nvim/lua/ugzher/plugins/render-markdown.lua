@@ -1,0 +1,14 @@
+return {
+	"MeanderingProgrammer/render-markdown.nvim",
+	dependencies = { "nvim-treesitter/nvim-treesitter", "nvim-mini/mini.nvim", "nvim-tree/nvim-web-devicons" },
+	---@module 'render-markdown'
+	opts = {
+		checkbox = {
+			unchecked = { icon = "☐ " },
+			checked = { icon = "☑ " },
+		},
+		conceal = {
+			char_patterns = {},
+		},
+	},
+}

@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+set -eu
+
+config_home=${XDG_CONFIG_HOME:-"$HOME/.config"}
+theme_env="$config_home/theme/current.env"
+
+if [ ! -f "$theme_env" ]; then
+  printf 'missing file: %s\n' "$theme_env" >&2
+  exit 1
+fi
+
+set -a
+. "$theme_env"
+set +a
+
+: "${THEME_WALLPAPER:?THEME_WALLPAPER is not set}"
+: "${THEME_WALLPAPER_MODE:=fill}"
+
+if [ ! -f "$THEME_WALLPAPER" ]; then
+  printf 'missing wallpaper: %s\n' "$THEME_WALLPAPER" >&2
+  exit 1
+fi
+
+if ! command -v swaybg >/dev/null 2>&1; then
+  printf 'swaybg is not installed\n' >&2
+  exit 1
+fi
+
+pkill -x swaybg 2>/dev/null || true
+exec swaybg -i "$THEME_WALLPAPER" -m "$THEME_WALLPAPER_MODE"

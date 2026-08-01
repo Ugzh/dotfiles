@@ -1,0 +1,124 @@
+#!/usr/bin/env sh
+set -eu
+
+config_home=${XDG_CONFIG_HOME:-"$HOME/.config"}
+theme_dir="$config_home/theme"
+theme_env="$theme_dir/current.env"
+presets_dir="$theme_dir/presets"
+
+require_file() {
+  if [ ! -f "$1" ]; then
+    printf 'missing file: %s\n' "$1" >&2
+    exit 1
+  fi
+}
+
+render_template() {
+  input=$1
+  output=$2
+
+  require_file "$input"
+  mkdir -p "$(dirname "$output")"
+
+  tmp=$(mktemp)
+  envsubst < "$input" > "$tmp"
+  mv "$tmp" "$output"
+}
+
+if [ "$#" -gt 0 ]; then
+  case "$1" in
+    ultraviolet|night|obsidian-rose) preset="$presets_dir/$1.env" ;;
+    *)
+      printf 'unknown theme: %s (expected ultraviolet, night or obsidian-rose)\n' "$1" >&2
+      exit 2
+      ;;
+  esac
+
+  require_file "$preset"
+  install -m 0644 "$preset" "$theme_env"
+fi
+
+require_file "$theme_env"
+
+set -a
+. "$theme_env"
+set +a
+
+render_template "$theme_dir/waybar.css.tmpl" "$theme_dir/waybar.css"
+render_template "$config_home/fuzzel/fuzzel.ini.tmpl" "$config_home/fuzzel/fuzzel.ini"
+render_template "$config_home/mako/config.tmpl" "$config_home/mako/config"
+render_template "$config_home/swaylock/config.tmpl" "$config_home/swaylock/config"
+render_template "$config_home/kitty/theme.conf.tmpl" "$config_home/kitty/theme.conf"
+render_template "$config_home/tmux/theme.conf.tmpl" "$config_home/tmux/theme.conf"
+render_template "$config_home/nvim/lua/generated-theme.lua.tmpl" "$config_home/nvim/lua/generated-theme.lua"
+render_template "$config_home/niri/theme.kdl.tmpl" "$config_home/niri/theme.kdl"
+render_template "$config_home/gtk-3.0/settings.ini.tmpl" "$config_home/gtk-3.0/settings.ini"
+render_template "$config_home/gtk-3.0/gtk.css.tmpl" "$config_home/gtk-3.0/gtk.css"
+render_template "$config_home/gtk-4.0/settings.ini.tmpl" "$config_home/gtk-4.0/settings.ini"
+render_template "$config_home/gtk-4.0/gtk.css.tmpl" "$config_home/gtk-4.0/gtk.css"
+render_template "$config_home/environment.d/90-cyberdream.conf.tmpl" "$config_home/environment.d/90-cyberdream.conf"
+
+vivaldi_dir="$theme_dir/vivaldi/$THEME_NAME"
+vivaldi_zip="$theme_dir/vivaldi/$THEME_NAME.zip"
+render_template "$theme_dir/vivaldi/settings.json.tmpl" "$vivaldi_dir/settings.json"
+if command -v zip >/dev/null 2>&1; then
+  (cd "$vivaldi_dir" && zip -q -FS "$vivaldi_zip" settings.json)
+fi
+
+# Register the generated theme when Vivaldi is closed. Keep a one-time backup
+# because Vivaldi rewrites this JSON while running.
+vivaldi_prefs="$config_home/vivaldi/Default/Preferences"
+if command -v jq >/dev/null 2>&1 && [ -f "$vivaldi_prefs" ] && ! pgrep -x vivaldi-bin >/dev/null 2>&1; then
+  vivaldi_backup="$vivaldi_prefs.before-cyberdream"
+  if [ ! -f "$vivaldi_backup" ]; then
+    cp -p "$vivaldi_prefs" "$vivaldi_backup"
+  fi
+
+  vivaldi_tmp=$(mktemp)
+  jq --slurpfile selected_theme "$vivaldi_dir/settings.json" '
+    .vivaldi.themes.user = (
+      (.vivaldi.themes.user // [])
+      | map(select(.id != $selected_theme[0].id))
+      + [$selected_theme[0]]
+    )
+    | .vivaldi.themes.current = $selected_theme[0].id
+    | .vivaldi.theme.schedule.o_s.dark = $selected_theme[0].id
+    | .vivaldi.theme.schedule.o_s.light = $selected_theme[0].id
+  ' "$vivaldi_prefs" > "$vivaldi_tmp"
+  chmod --reference="$vivaldi_prefs" "$vivaldi_tmp"
+  mv "$vivaldi_tmp" "$vivaldi_prefs"
+fi
+
+if [ -n "${THEME_WALLPAPER:-}" ]; then
+  require_file "$THEME_WALLPAPER"
+fi
+
+# Touch the importing stylesheet so Waybar notices imported theme changes.
+if [ -f "$config_home/waybar/style.css" ]; then
+  touch "$config_home/waybar/style.css"
+fi
+
+if command -v makoctl >/dev/null 2>&1 && pgrep -x mako >/dev/null 2>&1; then
+  makoctl reload >/dev/null 2>&1 || true
+fi
+
+if command -v gsettings >/dev/null 2>&1; then
+  gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface gtk-theme "$THEME_GTK_THEME" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface cursor-theme "$THEME_CURSOR" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface cursor-size "$THEME_CURSOR_SIZE" 2>/dev/null || true
+fi
+
+if pgrep -x kitty >/dev/null 2>&1; then
+  pkill -USR1 -x kitty 2>/dev/null || true
+fi
+
+if command -v tmux >/dev/null 2>&1 && tmux list-sessions >/dev/null 2>&1; then
+  tmux source-file "$config_home/tmux/tmux.conf" >/dev/null 2>&1 || true
+fi
+
+if [ -n "${WAYLAND_DISPLAY:-}" ] && command -v swaybg >/dev/null 2>&1; then
+  /home/Ugzher/.local/bin/apply-wallpaper >/dev/null 2>&1 &
+fi
+
+printf 'theme %s applied from %s\n' "$THEME_NAME" "$theme_env"

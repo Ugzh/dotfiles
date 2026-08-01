@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DEV_ID_IMAGE="${DEV_ID_IMAGE:-forgejo.blue.dev-id.fr:3113/dev-id/dev-id-opencode:latest}"
+CONTAINER_NAME="${CONTAINER_NAME:-dope}"
+DEV_ID_MOUNT_SOURCE="${DEV_ID_MOUNT_SOURCE:-$HOME}"
+
+if [[ -z "${RUNTIME:-}" ]]; then
+    if command -v docker &>/dev/null; then
+        RUNTIME="docker"
+    elif command -v podman &>/dev/null; then
+        RUNTIME="podman"
+    else
+        echo "Error: Neither docker nor podman found in PATH" >&2
+        exit 1
+    fi
+fi
+
+normalize_mount_source() {
+    local src="$DEV_ID_MOUNT_SOURCE"
+    src="${src/#\~/$HOME}"
+    src="${src%/}"
+    echo "$src"
+}
+
+get_container_workdir() {
+    local host_pwd
+    local mount_source
+    host_pwd="$(pwd)"
+    mount_source="$(normalize_mount_source)"
+
+    if [[ "$host_pwd" == "$mount_source" ]]; then
+        echo "/workspaces"
+    elif [[ "$host_pwd" == "$mount_source"/* ]]; then
+        local rel="${host_pwd#${mount_source}/}"
+        echo "/workspaces/$rel"
+    else
+        echo "Error: Current directory '$host_pwd' is not inside mount source '$mount_source'" >&2
+        echo "       Set DEV_ID_MOUNT_SOURCE to a parent directory of your project." >&2
+        exit 1
+    fi
+}
+
+ensure_image() {
+    if ! $RUNTIME image inspect "$DEV_ID_IMAGE" &>/dev/null; then
+        echo "Image '$DEV_ID_IMAGE' not found locally. Pulling..."
+        $RUNTIME pull "$DEV_ID_IMAGE"
+    fi
+}
+
+create_container() {
+    local mount_source
+    mount_source="$(normalize_mount_source)"
+
+    echo "Creating container '$CONTAINER_NAME'..."
+    echo "  Mount: $mount_source -> /workspaces"
+
+    local -a args=(
+        create
+        --name "$CONTAINER_NAME"
+        --label "dev-id-opencode.mount-source=$mount_source"
+        --shm-size=2g
+        -v "$mount_source:/workspaces:z"
+        -v "$HOME/.dope-npm:/root/.npm:z"
+        -v "$HOME/.dope-cache/pnpm-store:/root/.local/share/pnpm:z"
+        -v "$HOME/.dope-cache/dope-gradle-cache:/root/.gradle:z"
+        -v "$HOME/.m2:/root/.m2:z"
+        -v dope-data:/root/.local/share/opencode
+    )
+
+    [[ -f "$HOME/.gitconfig" ]] && args+=(-v "$HOME/.gitconfig:/root/.gitconfig:ro")
+    [[ -f "$HOME/.local/share/opencode/auth.json" ]] && args+=(-v "$HOME/.local/share/opencode/auth.json:/root/.local/share/opencode/auth.json:ro")
+    [[ -d "$HOME/.ssh" ]] && args+=(-v "$HOME/.ssh:/root/.ssh:ro")
+
+    $RUNTIME "${args[@]}" "$DEV_ID_IMAGE"
+}
+
+ensure_container() {
+    ensure_image
+
+    local mount_source
+    mount_source="$(normalize_mount_source)"
+
+    local status
+    status="$($RUNTIME inspect "$CONTAINER_NAME" --format '{{.State.Status}}' 2>/dev/null || echo "missing")"
+
+    if [[ "$status" == "missing" ]]; then
+        create_container
+        status="created"
+    else
+        local labeled_source
+        labeled_source="$($RUNTIME inspect "$CONTAINER_NAME" --format '{{index .Config.Labels "dev-id-opencode.mount-source"}}' 2>/dev/null || echo "")"
+        if [[ "$labeled_source" != "$mount_source" ]]; then
+            echo "Mount source changed ($labeled_source -> $mount_source), recreating container..."
+            $RUNTIME rm -f "$CONTAINER_NAME" 2>/dev/null || true
+            create_container
+            status="created"
+        fi
+    fi
+
+    if [[ "$status" == "paused" ]]; then
+        $RUNTIME unpause "$CONTAINER_NAME" 2>/dev/null || true
+        status="running"
+    fi
+
+    if [[ "$status" != "running" ]]; then
+        $RUNTIME start "$CONTAINER_NAME" 2>/dev/null || true
+    fi
+}
+
+cmd_pull() {
+    echo "Pulling image '$DEV_ID_IMAGE'..."
+    $RUNTIME pull "$DEV_ID_IMAGE"
+}
+
+cmd_start() {
+    ensure_container
+    local workdir
+    workdir="$(get_container_workdir)"
+
+    # Derive a tmux session name from the working directory so that
+    # different projects run in separate sessions (allowing multiple
+    # projects open concurrently), while re-invoking from the same
+    # directory reattaches to the existing session.
+    local session_name
+    session_name="$(basename "$workdir")"
+    session_name="${session_name//./_}"   # tmux disallows '.'
+    session_name="${session_name//:/_}"   # tmux disallows ':'
+    [[ -z "$session_name" || "$session_name" == "/" ]] && session_name="workspaces"
+
+    # If a session already exists for this directory, attach to it.
+    if $RUNTIME exec "$CONTAINER_NAME" tmux has-session -t "$session_name" 2>/dev/null; then
+        $RUNTIME exec -it "$CONTAINER_NAME" tmux attach-session -t "$session_name"
+        return
+    fi
+
+    # No existing session — find a free port for the multiplexer.
+    # The --port flag is required for OMO's multiplexer integration until
+    # https://github.com/anomalyco/opencode/issues/9099 is resolved.
+    # Each concurrent opencode instance needs its own port.
+    local port
+    port="$($RUNTIME exec "$CONTAINER_NAME" bash -c '
+        for p in $(seq 4096 4200); do
+            if ! (echo >/dev/tcp/127.0.0.1/$p) 2>/dev/null; then
+                echo "$p"
+                exit 0
+            fi
+        done
+        echo 4096
+    ')"
+
+    $RUNTIME exec -it -w "$workdir" -e OPENCODE_PORT="$port" "$CONTAINER_NAME" \
+        tmux new-session -s "$session_name" "opencode --port $port $*"
+}
+
+cmd_shell() {
+    ensure_container
+    local workdir
+    workdir="$(get_container_workdir)"
+    $RUNTIME exec -it -w "$workdir" "$CONTAINER_NAME" /bin/bash "$@"
+}
+
+cmd_stop() {
+    $RUNTIME stop "$CONTAINER_NAME" 2>/dev/null && echo "Container stopped." || echo "Container not running."
+}
+
+cmd_reset() {
+    $RUNTIME rm -f "$CONTAINER_NAME" 2>/dev/null || true
+    echo "Container removed. Cache volumes are preserved."
+    echo "Run '$0' to create a new container."
+}
+
+cmd_status() {
+    local status
+    status="$($RUNTIME inspect "$CONTAINER_NAME" --format '{{.State.Status}}' 2>/dev/null || echo "missing")"
+    if [[ "$status" == "missing" ]]; then
+        echo "Container '$CONTAINER_NAME' does not exist."
+        return
+    fi
+    local mount_source image
+    mount_source="$($RUNTIME inspect "$CONTAINER_NAME" --format '{{index .Config.Labels "dev-id-opencode.mount-source"}}' 2>/dev/null || echo "unknown")"
+    image="$($RUNTIME inspect "$CONTAINER_NAME" --format '{{.Config.Image}}' 2>/dev/null || echo "unknown")"
+    echo "Container:  $CONTAINER_NAME"
+    echo "Status:     $status"
+    echo "Image:      $image"
+    echo "Mount:      $mount_source -> /workspaces"
+    echo "Runtime:    $RUNTIME"
+}
+
+cmd_help() {
+    cat <<'EOF'
+dope.sh: Run opencode in a persistent container
+
+Usage:
+    dope.sh [command] [args...]
+
+Commands:
+    (default)   Start opencode in tmux (one session per project directory)
+    pull        Pull the latest image from the registry
+    shell       Open a bash shell in the container
+    stop        Stop the container (preserves caches)
+    reset       Remove the container (preserves cache volumes)
+    status      Show container status
+    help        Show this help message
+
+Environment variables:
+    DEV_ID_IMAGE          Registry image (default: forgejo.blue.dev-id.fr:3113/dev-id/dev-id-opencode:latest)
+    DEV_ID_MOUNT_SOURCE   Host directory to mount (default: $HOME)
+    CONTAINER_NAME        Container name (default: dope)
+    RUNTIME               Force docker or podman (default: auto-detect)
+
+Examples:
+    dope.sh                                             # Start opencode in tmux
+    dope.sh shell                                       # Get a shell (use 'tmux ls' / 'tmux a -t <name>')
+    dope.sh pull                                        # Update to latest image
+    DEV_ID_MOUNT_SOURCE=~/Projects dope.sh              # Mount only ~/Projects
+    dope.sh --model oreus/vox/code-max                  # Pass args to opencode
+EOF
+}
+
+case "${1:-}" in
+    pull)   shift; cmd_pull "$@" ;;
+    shell)  shift; cmd_shell "$@" ;;
+    stop)   shift; cmd_stop "$@" ;;
+    reset)  shift; cmd_reset "$@" ;;
+    status) shift; cmd_status "$@" ;;
+    help|--help|-h) cmd_help ;;
+    "")     cmd_start ;;
+    *)      cmd_start "$@" ;;
+esac

@@ -1,0 +1,6 @@
+default_profile = "default"
+
+[profiles.default]
+theme = "dracula"
+adapter = "duckdb"
+limit = 100_000

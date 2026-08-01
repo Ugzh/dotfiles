@@ -1,0 +1,2 @@
+# Put the largest entries at the top, which is easier to scan interactively.
+reverse = true

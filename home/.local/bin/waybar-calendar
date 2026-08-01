@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
+
+from gi.repository import Gdk, Gtk
+
+
+CSS = """
+window {
+  background: #071611;
+  border: 3px ridge #123d31;
+  border-radius: 8px;
+}
+
+box {
+  padding: 10px;
+}
+
+label {
+  color: #d8fff2;
+  font-family: "Adwaita Mono";
+  font-weight: 900;
+}
+
+calendar {
+  color: #d8fff2;
+  background: #071611;
+  border: none;
+  font-family: "Adwaita Mono";
+}
+
+calendar:selected {
+  color: #071611;
+  background: #00ff9d;
+}
+"""
+
+
+class CalendarApp(Gtk.Application):
+    def __init__(self):
+        super().__init__(application_id="local.waybar.calendar")
+
+    def do_activate(self):
+        provider = Gtk.CssProvider()
+        provider.load_from_data(CSS.encode())
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(),
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
+
+        window = Gtk.ApplicationWindow(application=self, title="Calendar")
+        window.set_decorated(False)
+        window.set_resizable(False)
+        window.set_default_size(280, 230)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+
+        label = Gtk.Label(label="Calendar")
+        label.set_margin_bottom(2)
+        box.append(label)
+
+        calendar = Gtk.Calendar()
+        calendar.set_property("show-heading", True)
+        calendar.set_property("show-day-names", True)
+        calendar.set_property("show-week-numbers", True)
+        box.append(calendar)
+
+        key_controller = Gtk.EventControllerKey.new()
+        key_controller.connect(
+            "key-pressed",
+            lambda _controller, keyval, _keycode, _state: window.close()
+            if keyval == Gdk.KEY_Escape
+            else False,
+        )
+        window.add_controller(key_controller)
+
+        def close_when_unfocused(_window, _param):
+            if not window.is_active():
+                window.close()
+
+        window.connect("notify::is-active", close_when_unfocused)
+        window.set_child(box)
+        window.present()
+
+
+raise SystemExit(CalendarApp().run())

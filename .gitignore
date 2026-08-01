@@ -1,0 +1,25 @@
+# Secrets and machine credentials must never enter this repository.
+**/.env
+**/.env.*
+**/*credential*
+**/*secret*
+**/*token*
+**/*.key
+**/*.pem
+**/*.p12
+**/*.kubeconfig
+**/auth.json
+**/credentials.json
+
+# Generated state, caches and downloaded binaries.
+**/.DS_Store
+**/.git/
+**/.agents/
+**/.codex/
+**/node_modules/
+**/__pycache__/
+**/*.log
+**/*.bak
+home/.config/atuin/atuin-receipt.json
+home/.config/zellij/plugins/
+

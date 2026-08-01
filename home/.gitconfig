@@ -1,0 +1,27 @@
+[user]
+	name = Ugo Thevenin
+	email = ugo.mateda@gmail.com
+[core]
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[merge]
+	conflictStyle = zdiff3
+[delta]
+	navigate = true
+	dark = true
+	line-numbers = true
+	hyperlinks = true
+	side-by-side = false
+	syntax-theme = Dracula
+	file-style = "bold #c6a0f6"
+	file-decoration-style = none
+	hunk-header-style = syntax
+	line-numbers-left-style = "#b7a7bd"
+	line-numbers-right-style = "#b7a7bd"
+	line-numbers-minus-style = "#ff6e9e"
+	line-numbers-plus-style = "#c7f36b"
+	minus-style = "syntax #3d1f32"
+	minus-emph-style = "syntax #6b2945"
+	plus-style = "syntax #23351f"
+	plus-emph-style = "syntax #405f2e"

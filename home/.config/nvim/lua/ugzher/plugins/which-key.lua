@@ -1,0 +1,23 @@
+return {
+	"folke/which-key.nvim",
+	event = "VeryLazy",
+	opts = {
+		delay = 350,
+		preset = "modern",
+		spec = {
+			{ "<leader>b", group = "Buffers" },
+			{ "<leader>c", group = "Code" },
+			{ "<leader>e", group = "Explorateur" },
+			{ "<leader>f", group = "Recherche" },
+			{ "<leader>g", group = "Git" },
+			{ "<leader>k", group = "Kotlin / Gradle" },
+			{ "<leader>n", group = "Notifications" },
+			{ "<leader>p", group = "Presse-papiers" },
+			{ "<leader>r", group = "Exécution" },
+			{ "<leader>s", group = "Fenêtres" },
+			{ "<leader>t", group = "Onglets" },
+			{ "<leader>u", group = "Interface" },
+			{ "<leader>x", group = "Diagnostics" },
+		},
+	},
+}

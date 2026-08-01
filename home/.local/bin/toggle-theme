@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+set -eu
+
+theme_env="${XDG_CONFIG_HOME:-$HOME/.config}/theme/current.env"
+
+if [ -f "$theme_env" ]; then
+  . "$theme_env"
+fi
+
+if [ "${THEME_MODE:-ultraviolet}" = "night" ]; then
+  exec /home/Ugzher/.local/bin/apply-theme ultraviolet
+else
+  exec /home/Ugzher/.local/bin/apply-theme night
+fi
+
