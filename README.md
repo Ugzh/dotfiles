@@ -22,22 +22,33 @@ copiés.
 
 ## Enregistrer les modifications
 
+Les fichiers de `home/` sont directement liés dans `$HOME` avec GNU Stow :
+toute modification de la configuration modifie donc immédiatement le dépôt,
+sans copie intermédiaire.
+
+Pour mettre à jour les inventaires et créer un commit local :
+
 ```bash
-cd ~/dotfiles
-./sync.sh
-git diff
-git add .
-git commit -m "update configuration"
+dots
 ```
 
-`sync.sh` copie uniquement la liste blanche déclarée dans le script. Neovim
-est copié sans son répertoire `.git`, afin de conserver intact son dépôt local
-indépendant dans `~/.config/nvim`. Il régénère également les trois inventaires
-de `inventory/`.
+Pour choisir le message et pousser le commit vers GitHub :
+
+```bash
+dots --push "feat: mettre à jour le bureau"
+```
+
+`sync.sh` réapplique les liens Stow et régénère les trois inventaires de
+`inventory/`. Il ne recopie aucun fichier de configuration.
 
 ## Restaurer sur une machine
 
-Cloner le dépôt dans `~/dotfiles`, puis afficher d’abord l’aperçu :
+Installer Stow, cloner le dépôt dans `~/dotfiles`, puis afficher d’abord
+l’aperçu :
+
+```bash
+sudo dnf install stow
+```
 
 ```bash
 cd ~/dotfiles
@@ -50,9 +61,9 @@ Appliquer ensuite la restauration :
 ./restore.sh --apply
 ```
 
-Les fichiers existants remplacés sont conservés dans
-`~/.dotfiles-backup/<date>`. Le script ne supprime pas les autres fichiers de
-la machine.
+Les fichiers physiques qui entrent en conflit sont déplacés dans
+`~/.dotfiles-backup/stow-<date>`, puis remplacés par des liens symboliques.
+Le script ne touche pas aux fichiers absents du paquet `home/`.
 
 Les inventaires sont volontairement informatifs : la restauration ne lance
 pas automatiquement `dnf`, Flatpak ou `systemctl`, afin de ne pas modifier une

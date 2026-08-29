@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dotfiles_root="${DOTFILES_ROOT:-${HOME:?HOME is not set}/dotfiles}"
+push=false
+
+if [[ "${1:-}" == "--push" ]]; then
+  push=true
+  shift
+fi
+
+commit_message="${*:-chore: update workstation configuration}"
+
+if [[ ! -d "$dotfiles_root/.git" ]]; then
+  printf 'Dépôt dotfiles introuvable : %s\n' "$dotfiles_root" >&2
+  exit 1
+fi
+
+exec 9>"$dotfiles_root/.sync.lock"
+if ! flock --nonblock 9; then
+  printf 'Une mise à jour des dotfiles est déjà en cours.\n' >&2
+  exit 1
+fi
+
+"$dotfiles_root/sync.sh"
+git -C "$dotfiles_root" add -A
+
+if git -C "$dotfiles_root" diff --cached --quiet; then
+  printf 'Aucun changement à enregistrer.\n'
+else
+  git -C "$dotfiles_root" commit -m "$commit_message"
+fi
+
+if $push; then
+  git -C "$dotfiles_root" push
+else
+  printf 'Commit local terminé. Utilise dots --push pour publier sur GitHub.\n'
+fi

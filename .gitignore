@@ -21,6 +21,7 @@
 **/*.log
 **/*.bak
 **/*.backup-*
+.sync.lock
 home/.config/atuin/atuin-receipt.json
 home/.config/zellij/plugins/
 home/.config/spicetify/CustomApps/
