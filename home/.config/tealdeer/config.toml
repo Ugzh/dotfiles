@@ -4,17 +4,17 @@ use_pager = true
 show_title = true
 
 [style.command_name]
-foreground = { rgb = { r = 199, g = 243, b = 107 } }
+foreground = { ansi = 5 }
 bold = true
 
 [style.example_text]
-foreground = { rgb = { r = 198, g = 160, b = 246 } }
+foreground = { ansi = 4 }
 
 [style.example_code]
-foreground = { rgb = { r = 247, g = 239, b = 249 } }
+foreground = { ansi = 7 }
 
 [style.example_variable]
-foreground = { rgb = { r = 241, g = 91, b = 181 } }
+foreground = { ansi = 13 }
 underline = true
 
 [updates]

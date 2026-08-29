@@ -1,34 +1,46 @@
 daemonize
 show-failed-attempts
+ignore-empty-password
 
-color=0d0911
-image=/home/Ugzher/Pictures/Wallpapers/wp-home.jpg
+color=1e1e2e
+image=/home/Ugzher/.local/share/theme-sync/login-background.jpg
 scaling=fill
 
-font=GeistMono Nerd Font Mono
-font-size=18
+font=Lilex Nerd Font Mono
+font-size=20
 
 indicator
 indicator-idle-visible
-indicator-radius=78
-indicator-thickness=6
+indicator-radius=86
+indicator-thickness=7
+indicator-caps-lock
+show-keyboard-layout
 
-inside-color=0d0911ee
-inside-clear-color=0d0911ee
-inside-ver-color=0d0911ee
-inside-wrong-color=0d0911ee
+inside-color=1e1e2eee
+inside-clear-color=1e1e2eee
+inside-caps-lock-color=1e1e2eee
+inside-ver-color=1e1e2eee
+inside-wrong-color=1e1e2eee
 
-ring-color=643b72ff
-ring-clear-color=c6a0f6ff
-ring-ver-color=c7f36bff
-ring-wrong-color=c7f36bff
+ring-color=6c7086ff
+ring-clear-color=b4befeff
+ring-caps-lock-color=f9e2afff
+ring-ver-color=cba6f7ff
+ring-wrong-color=f38ba8ff
 
-text-color=f7eff9ff
-text-clear-color=c6a0f6ff
-text-ver-color=c7f36bff
-text-wrong-color=c7f36bff
+text-color=cdd6f4ff
+text-clear-color=b4befeff
+text-caps-lock-color=f9e2afff
+text-ver-color=cba6f7ff
+text-wrong-color=f38ba8ff
 
-key-hl-color=c7f36bff
-bs-hl-color=c6a0f6ff
+key-hl-color=cba6f7ff
+caps-lock-key-hl-color=f9e2afff
+bs-hl-color=b4befeff
+caps-lock-bs-hl-color=f38ba8ff
+
+layout-bg-color=1e1e2eee
+layout-border-color=6c7086ff
+layout-text-color=cdd6f4ff
 
 separator-color=00000000

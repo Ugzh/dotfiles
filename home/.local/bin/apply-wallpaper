@@ -13,18 +13,46 @@ set -a
 . "$theme_env"
 set +a
 
+# Apply the wallpaper associated with the active desktop theme, when present.
+wallpaper_override="$config_home/theme/wallpapers/$THEME_NAME.env"
+if [ -f "$wallpaper_override" ]; then
+  set -a
+  . "$wallpaper_override"
+  set +a
+fi
+
 : "${THEME_WALLPAPER:?THEME_WALLPAPER is not set}"
 : "${THEME_WALLPAPER_MODE:=fill}"
 
 if [ ! -f "$THEME_WALLPAPER" ]; then
-  printf 'missing wallpaper: %s\n' "$THEME_WALLPAPER" >&2
-  exit 1
+  printf 'wallpaper not found, keeping current background: %s\n' "$THEME_WALLPAPER" >&2
+  exit 0
 fi
 
-if ! command -v swaybg >/dev/null 2>&1; then
-  printf 'swaybg is not installed\n' >&2
-  exit 1
-fi
+wallpaper_name=$(basename "$THEME_WALLPAPER")
+wallpaper_extension=$(printf '%s' "${wallpaper_name##*.}" | tr '[:upper:]' '[:lower:]')
 
-pkill -x swaybg 2>/dev/null || true
-exec swaybg -i "$THEME_WALLPAPER" -m "$THEME_WALLPAPER_MODE"
+case "$wallpaper_extension" in
+  gif|mkv|mov|mp4|webm)
+    if ! command -v mpvpaper >/dev/null 2>&1; then
+      printf 'mpvpaper is not installed; install it with: sudo dnf install mpv mpvpaper\n' >&2
+      exit 1
+    fi
+
+    pkill -x swaybg 2>/dev/null || true
+    pkill -x mpvpaper 2>/dev/null || true
+    exec mpvpaper \
+      -o "no-audio loop-file=inf hwdec=auto-safe panscan=1.0" \
+      ALL "$THEME_WALLPAPER"
+    ;;
+  *)
+    if ! command -v swaybg >/dev/null 2>&1; then
+      printf 'swaybg is not installed\n' >&2
+      exit 1
+    fi
+
+    pkill -x mpvpaper 2>/dev/null || true
+    pkill -x swaybg 2>/dev/null || true
+    exec swaybg -i "$THEME_WALLPAPER" -m "$THEME_WALLPAPER_MODE"
+    ;;
+esac

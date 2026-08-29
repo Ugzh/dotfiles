@@ -95,6 +95,20 @@ meilleurs résultats, lancer Neovim depuis un projet contenant `gradlew`,
 
 ## TypeScript et scripts Node
 
+`tsgo` fournit par défaut les fonctions LSP dans l'éditeur. `:TypeScriptLsp`
+ou `<leader>cT` permet de choisir `tsgo` ou l'ancien `ts_ls` pour la racine du
+projet courant. Le choix persiste localement dans l'état Neovim et ne modifie
+aucun fichier du dépôt. La validation complète reste séparée : elle utilise le
+script `typecheck` du package lorsqu'il existe, sinon le `tsc --noEmit` installé
+localement dans `node_modules`.
+
+Lorsqu'un projet déclare Oxlint dans son `package.json` ou possède une
+configuration Oxlint, celui-ci remplace automatiquement ESLint et le lint de
+Biome dans l'éditeur. De même, un `dprint.json` donne la priorité à dprint pour
+le formatage ; Biome et Prettier restent disponibles pour les autres projets.
+Les exécutables installés dans le projet sont toujours préférés aux versions de
+secours fournies par Mason.
+
 Les commandes utilisent le `package.json` le plus proche du fichier courant.
 Le gestionnaire de paquets est détecté automatiquement à partir du lockfile ou
 du champ `packageManager` : npm, pnpm, Yarn et Bun sont pris en charge.
@@ -102,6 +116,8 @@ du champ `packageManager` : npm, pnpm, Yarn et Bun sont pris en charge.
 | Raccourci | Action |
 | --- | --- |
 | `<leader>rs` | Choisir et lancer un script de `package.json` |
+| `<leader>cT` | Choisir `tsgo` ou `ts_ls` pour le projet courant |
+| `<leader>rc` | Valider le package avec `typecheck` ou `tsc --noEmit` |
 | `<leader>rt` | Lancer le script `test` du package |
 | `<leader>rf` | Tester uniquement le fichier courant |
 | `<leader>rl` | Relancer la dernière tâche |
@@ -152,18 +168,23 @@ Blink affiche les propositions LSP, chemins, buffers et snippets.
 | `:Lazy` | Gérer et mettre à jour les plugins |
 | `:Mason` | Gérer les serveurs LSP et outils externes |
 | `:LspInfo` | Afficher les serveurs configurés et attachés |
+| `:TypeScriptLsp [tsgo\|ts_ls]` | Choisir le LSP TypeScript du projet courant |
 | `:ConformInfo` | Afficher le formateur sélectionné pour le fichier |
 | `:checkhealth` | Lancer le diagnostic général de Neovim |
 | `:messages` | Afficher les derniers messages de Neovim |
 
 ## Thème du bureau
 
-Neovim utilise la palette Obsidian Rose partagée avec Niri, GTK, le terminal et
-les outils du bureau : fond prune-noir, fuchsia, lavande et accent vert acide.
+Neovim utilise la palette active partagée avec Niri, GTK, Spotify, le terminal et les
+outils du bureau. Le sélecteur comprend notamment Elysia Light, Elysia Dark et
+Nord, avec sa palette polaire bleu-gris.
 
 | Raccourci ou commande | Action |
 | --- | --- |
-| `apply-theme obsidian-rose` | Appliquer Obsidian Rose sur tout le bureau |
+| `Super+T` | Ouvrir le sélecteur des thèmes du bureau |
+| `apply-theme elysia-light` | Appliquer Elysia Light sur tout le bureau |
+| `apply-theme elysia-dark` | Appliquer Elysia Dark sur tout le bureau |
+| `apply-theme nord` | Appliquer Nord sur tout le bureau |
 
 Une instance Neovim déjà ouverte doit être redémarrée pour recharger toute la
 palette. Le détail et les fichiers Vivaldi sont dans

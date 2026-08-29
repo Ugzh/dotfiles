@@ -27,6 +27,28 @@ local function code_action_number_actions()
 	return actions
 end
 
+local function explorer_open_in_window(picker, item)
+	if not item or item.dir then
+		picker:action("confirm")
+		return
+	end
+
+	local target_windows = vim.tbl_filter(function(window)
+		local buffer = vim.api.nvim_win_get_buf(window)
+		return vim.api.nvim_win_get_config(window).relative == "" and not vim.bo[buffer].filetype:find("^snacks")
+	end, vim.api.nvim_tabpage_list_wins(0))
+
+	if #target_windows <= 1 then
+		picker:action("confirm")
+		return
+	end
+
+	local cancelled = Snacks.picker.actions.pick_win(picker, item, {})
+	if not cancelled then
+		picker:action("confirm")
+	end
+end
+
 return {
 	"folke/snacks.nvim",
 	priority = 1000,
@@ -47,6 +69,28 @@ return {
 					hidden = true,
 					ignored = true,
 					exclude = { "dist" },
+					layout = {
+						preset = "sidebar",
+						preview = false,
+						layout = {
+							width = 44,
+							min_width = 36,
+							border = "rounded",
+							title = "   {title} ",
+							title_pos = "left",
+						},
+					},
+					actions = {
+						open_in_window = explorer_open_in_window,
+					},
+					win = {
+						list = {
+							keys = {
+								["<CR>"] = { "open_in_window", desc = "Ouvrir dans une fenêtre" },
+								["l"] = { "open_in_window", desc = "Ouvrir dans une fenêtre" },
+							},
+						},
+					},
 				},
 				select = {
 					kinds = {

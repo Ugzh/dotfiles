@@ -1,34 +1,46 @@
 daemonize
 show-failed-attempts
+ignore-empty-password
 
 color=${THEME_BG}
-image=${THEME_WALLPAPER}
+image=${THEME_LOCK_WALLPAPER}
 scaling=${THEME_WALLPAPER_MODE}
 
 font=${THEME_FONT}
-font-size=18
+font-size=20
 
 indicator
 indicator-idle-visible
-indicator-radius=78
-indicator-thickness=6
+indicator-radius=86
+indicator-thickness=7
+indicator-caps-lock
+show-keyboard-layout
 
 inside-color=${THEME_BG}${THEME_PANEL_ALPHA}
 inside-clear-color=${THEME_BG}${THEME_PANEL_ALPHA}
+inside-caps-lock-color=${THEME_BG}${THEME_PANEL_ALPHA}
 inside-ver-color=${THEME_BG}${THEME_PANEL_ALPHA}
 inside-wrong-color=${THEME_BG}${THEME_PANEL_ALPHA}
 
 ring-color=${THEME_BORDER}ff
 ring-clear-color=${THEME_BRIGHT}ff
+ring-caps-lock-color=${THEME_WARNING}ff
 ring-ver-color=${THEME_ACCENT}ff
-ring-wrong-color=${THEME_ACCENT}ff
+ring-wrong-color=${THEME_RED}ff
 
 text-color=${THEME_FG}ff
 text-clear-color=${THEME_BRIGHT}ff
+text-caps-lock-color=${THEME_WARNING}ff
 text-ver-color=${THEME_ACCENT}ff
-text-wrong-color=${THEME_ACCENT}ff
+text-wrong-color=${THEME_RED}ff
 
 key-hl-color=${THEME_ACCENT}ff
+caps-lock-key-hl-color=${THEME_WARNING}ff
 bs-hl-color=${THEME_BRIGHT}ff
+caps-lock-bs-hl-color=${THEME_RED}ff
+
+layout-bg-color=${THEME_BG}${THEME_PANEL_ALPHA}
+layout-border-color=${THEME_BORDER}ff
+layout-text-color=${THEME_FG}ff
 
 separator-color=${THEME_TRANSPARENT}

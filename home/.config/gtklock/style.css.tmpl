@@ -1,0 +1,71 @@
+* {
+    font-family: "${THEME_FONT}";
+    color: #${THEME_FG};
+}
+
+#window-box {
+    margin: 0;
+}
+
+#info-box {
+    margin-bottom: 28px;
+    padding: 18px 34px;
+    background-color: rgba(${THEME_BG_RGB}, 0.82);
+    border: 1px solid #${THEME_BORDER};
+    border-radius: 20px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+}
+
+#clock-label {
+    font-size: 76px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #${THEME_FG};
+    text-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+}
+
+#date-label {
+    margin-top: 2px;
+    font-size: 19px;
+    font-weight: 500;
+    color: #${THEME_FG_DIM};
+}
+
+#body-grid {
+    min-width: 440px;
+    padding: 30px 34px;
+    background-color: rgba(${THEME_BG_RGB}, 0.94);
+    border: 1px solid #${THEME_BORDER};
+    border-radius: 20px;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+}
+
+#input-field {
+    min-height: 46px;
+    padding: 4px 14px;
+    font-size: 18px;
+    color: #${THEME_FG};
+    caret-color: #${THEME_ACCENT};
+    background-color: #${THEME_BG_ALT};
+    border: 1px solid #${THEME_BORDER};
+    border-radius: 11px;
+    box-shadow: none;
+}
+
+#input-field:focus {
+    border-color: #${THEME_ACCENT};
+    box-shadow: 0 0 0 2px alpha(#${THEME_ACCENT}, 0.28);
+}
+
+#warning-label {
+    color: #${THEME_WARNING};
+}
+
+#error-label {
+    color: #${THEME_RED};
+}
+
+#message-box {
+    margin-top: 8px;
+    color: #${THEME_FG_DIM};
+}

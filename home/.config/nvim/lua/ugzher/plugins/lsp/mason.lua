@@ -14,7 +14,9 @@ return {
 			automatic_enable = false,
 			ensure_installed = {
 				"lua_ls",
-				"vtsls",
+				"tsgo",
+				"ts_ls",
+				"oxlint",
 				"kotlin_lsp",
 				"angularls",
 				"eslint",
@@ -36,6 +38,8 @@ return {
 
 		require("mason-tool-installer").setup({
 			ensure_installed = {
+				"dprint",
+				"oxfmt",
 				"stylua",
 				"ktlint",
 				"prettier",

@@ -48,12 +48,66 @@ ensure_image() {
     fi
 }
 
+# ── User-mapping ──────────────────────────────────────────────────────────
+# Ensure files created in the container are owned by the host user instead of
+# root, which is the default when the container runs as root.
+#
+#   DEV_ID_USERNS=auto      auto-detect best strategy per runtime (default)
+#   DEV_ID_USERNS=keep-id   --userns=keep-id   (podman: root inside = host user)
+#   DEV_ID_USERNS=hostuser  --user $UID:$GID    (docker rootful fallback)
+#   DEV_ID_USERNS=none      no remapping        (docker rootless: already mapped)
+detect_userns_mode() {
+    local mode="${DEV_ID_USERNS:-auto}"
+    case "$mode" in
+        auto)
+            if [[ "$RUNTIME" == "podman" ]]; then
+                echo "keep-id"
+            elif [[ "$RUNTIME" == "docker" ]]; then
+                if $RUNTIME info --format '{{json .SecurityOptions}}' 2>/dev/null | grep -qi rootless; then
+                    echo "none"        # docker rootless already remaps uid 0 -> host user
+                else
+                    echo "hostuser"    # docker rootful: run as host uid + chown
+                fi
+            fi
+            ;;
+        *) echo "$mode" ;;
+    esac
+}
+
+# One-time permission fix for docker-rootful mode: chown image dirs so the
+# non-root user (host uid) can write to them. Skipped when already correct.
+fix_container_perms() {
+    [[ "$(detect_userns_mode)" != "hostuser" ]] && return 0
+    local uid gid
+    uid="$(id -u)" gid="$(id -g)"
+    local owner
+    owner="$($RUNTIME exec -u 0 "$CONTAINER_NAME" stat -c '%u' /root 2>/dev/null || echo "?")"
+    [[ "$owner" == "$uid" ]] && return 0
+    echo "Fixing permissions for uid $uid..."
+    $RUNTIME exec -u 0 "$CONTAINER_NAME" \
+        chown -R "$uid:$gid" /root 2>/dev/null || true
+}
+
 create_container() {
     local mount_source
     mount_source="$(normalize_mount_source)"
 
+    local userns_mode
+    userns_mode="$(detect_userns_mode)"
+
+    # In hostuser mode (docker rootful) the named volume would be created
+    # root-owned and unwritable by the host uid; use a bind mount instead.
+    local opencode_data_mount
+    if [[ "$userns_mode" == "hostuser" ]]; then
+        mkdir -p "$HOME/.dope-cache/opencode-data"
+        opencode_data_mount="$HOME/.dope-cache/opencode-data:/root/.local/share/opencode"
+    else
+        opencode_data_mount="dope-data:/root/.local/share/opencode"
+    fi
+
     echo "Creating container '$CONTAINER_NAME'..."
     echo "  Mount: $mount_source -> /workspaces"
+    echo "  User-ns: $userns_mode"
 
     local -a args=(
         create
@@ -65,12 +119,18 @@ create_container() {
         -v "$HOME/.dope-cache/pnpm-store:/root/.local/share/pnpm:z"
         -v "$HOME/.dope-cache/dope-gradle-cache:/root/.gradle:z"
         -v "$HOME/.m2:/root/.m2:z"
-        -v dope-data:/root/.local/share/opencode
+        -v "$opencode_data_mount"
     )
 
     [[ -f "$HOME/.gitconfig" ]] && args+=(-v "$HOME/.gitconfig:/root/.gitconfig:ro")
     [[ -f "$HOME/.local/share/opencode/auth.json" ]] && args+=(-v "$HOME/.local/share/opencode/auth.json:/root/.local/share/opencode/auth.json:ro")
     [[ -d "$HOME/.ssh" ]] && args+=(-v "$HOME/.ssh:/root/.ssh:ro")
+
+    case "$userns_mode" in
+        keep-id)  args+=(--userns=keep-id) ;;
+        hostuser) args+=(--user "$(id -u):$(id -g)" -e HOME=/root) ;;
+        none)     ;;
+    esac
 
     $RUNTIME "${args[@]}" "$DEV_ID_IMAGE"
 }
@@ -106,6 +166,8 @@ ensure_container() {
     if [[ "$status" != "running" ]]; then
         $RUNTIME start "$CONTAINER_NAME" 2>/dev/null || true
     fi
+
+    fix_container_perms
 }
 
 cmd_pull() {
@@ -185,6 +247,7 @@ cmd_status() {
     echo "Image:      $image"
     echo "Mount:      $mount_source -> /workspaces"
     echo "Runtime:    $RUNTIME"
+    echo "User-ns:    $(detect_userns_mode)"
 }
 
 cmd_help() {
@@ -208,6 +271,7 @@ Environment variables:
     DEV_ID_MOUNT_SOURCE   Host directory to mount (default: $HOME)
     CONTAINER_NAME        Container name (default: dope)
     RUNTIME               Force docker or podman (default: auto-detect)
+    DEV_ID_USERNS         User-namespace mode: auto|keep-id|hostuser|none (default: auto)
 
 Examples:
     dope.sh                                             # Start opencode in tmux

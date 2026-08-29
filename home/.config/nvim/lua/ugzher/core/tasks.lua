@@ -111,6 +111,26 @@ function M.test_package()
 	package_script("test")
 end
 
+function M.typecheck_package()
+	local context = package_context()
+	if not context then
+		return
+	end
+
+	if context.package.scripts and context.package.scripts.typecheck then
+		package_script("typecheck")
+		return
+	end
+
+	local compiler = context.root .. "/node_modules/.bin/tsc"
+	if not vim.uv.fs_stat(compiler) then
+		notify("TypeScript n'est pas installé localement et aucun script « typecheck » n'existe")
+		return
+	end
+
+	run({ compiler, "--noEmit" }, context.root, "tsc --noEmit")
+end
+
 function M.test_current_file()
 	local file = vim.api.nvim_buf_get_name(0)
 	if file == "" then
@@ -181,6 +201,7 @@ vim.keymap.set("n", "<leader>kc", function()
 end, { desc = "Gradle clean" })
 
 vim.keymap.set("n", "<leader>rs", M.select_package_script, { desc = "Choisir un script package.json" })
+vim.keymap.set("n", "<leader>rc", M.typecheck_package, { desc = "Vérifier les types du package" })
 vim.keymap.set("n", "<leader>rt", M.test_package, { desc = "Tester le package" })
 vim.keymap.set("n", "<leader>rf", M.test_current_file, { desc = "Tester le fichier courant" })
 vim.keymap.set("n", "<leader>rl", M.rerun_last, { desc = "Relancer la dernière tâche" })

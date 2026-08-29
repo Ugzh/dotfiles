@@ -5,6 +5,7 @@ config_home=${XDG_CONFIG_HOME:-"$HOME/.config"}
 theme_dir="$config_home/theme"
 theme_env="$theme_dir/current.env"
 presets_dir="$theme_dir/presets"
+theme_variables='${THEME_NAME} ${THEME_MODE} ${THEME_FONT} ${THEME_SYNTAX} ${THEME_GTK_THEME} ${THEME_CURSOR} ${THEME_CURSOR_SIZE} ${THEME_COLOR_SCHEME} ${THEME_WALLPAPER} ${THEME_WALLPAPER_MODE} ${THEME_LOCK_WALLPAPER} ${THEME_BG} ${THEME_BG_RGB} ${THEME_BG_ALT} ${THEME_BG_HIGHLIGHT} ${THEME_BG_ALPHA} ${THEME_PANEL_ALPHA} ${THEME_CODE_BG} ${THEME_CODE_BG_ALT} ${THEME_CODE_BG_HIGHLIGHT} ${THEME_FG} ${THEME_FG_DIM} ${THEME_FG_DIM_ALPHA} ${THEME_ACCENT} ${THEME_BORDER} ${THEME_BRIGHT} ${THEME_MUTED} ${THEME_WARNING} ${THEME_RECORDING} ${THEME_RED} ${THEME_YELLOW} ${THEME_ORANGE} ${THEME_BLUE} ${THEME_GREEN} ${THEME_CYAN} ${THEME_MAGENTA} ${THEME_PINK} ${THEME_TRAY_BG} ${THEME_TRAY_FG} ${THEME_SHADOW} ${THEME_TRANSPARENT}'
 
 require_file() {
   if [ ! -f "$1" ]; then
@@ -21,15 +22,15 @@ render_template() {
   mkdir -p "$(dirname "$output")"
 
   tmp=$(mktemp)
-  envsubst < "$input" > "$tmp"
+  envsubst "$theme_variables" < "$input" > "$tmp"
   mv "$tmp" "$output"
 }
 
 if [ "$#" -gt 0 ]; then
   case "$1" in
-    ultraviolet|night|obsidian-rose) preset="$presets_dir/$1.env" ;;
+    ultraviolet|night|obsidian-rose|catppuccin-mocha|gruvbox-soft-dark|gruvbox-soft-light|elysia-light|elysia-dark|nord|oxocarbon|seoul256-dark|cool-panda|melange-dark) preset="$presets_dir/$1.env" ;;
     *)
-      printf 'unknown theme: %s (expected ultraviolet, night or obsidian-rose)\n' "$1" >&2
+      printf 'unknown theme: %s (expected obsidian-rose, catppuccin-mocha, gruvbox-soft-dark, melange-dark, gruvbox-soft-light, elysia-light, elysia-dark, nord, oxocarbon, seoul256-dark or cool-panda)\n' "$1" >&2
       exit 2
       ;;
   esac
@@ -44,19 +45,117 @@ set -a
 . "$theme_env"
 set +a
 
+# GTK CSS needs decimal RGB channels for translucent lock-screen cards.
+theme_bg_r=${THEME_BG%????}
+theme_bg_tail=${THEME_BG#??}
+theme_bg_g=${theme_bg_tail%??}
+theme_bg_b=${THEME_BG#????}
+THEME_BG_RGB=$(printf '%d, %d, %d' "0x$theme_bg_r" "0x$theme_bg_g" "0x$theme_bg_b")
+export THEME_BG_RGB
+
+# A wallpaper selected for this palette takes precedence over its default.
+wallpaper_override="$theme_dir/wallpapers/$THEME_NAME.env"
+if [ -f "$wallpaper_override" ]; then
+  set -a
+  . "$wallpaper_override"
+  set +a
+fi
+
+# A missing wallpaper must not leave the desktop half-switched. Keep the
+# currently running background and continue applying the rest of the theme.
+if [ -n "${THEME_WALLPAPER:-}" ] && [ ! -f "$THEME_WALLPAPER" ]; then
+  printf 'warning: wallpaper not found, keeping current background: %s\n' "$THEME_WALLPAPER" >&2
+  THEME_WALLPAPER=
+fi
+
+# Locks and the boot greeter need a stable still image. The systemd path unit
+# watches this file and mirrors it to /etc/greetd/login-background.jpg.
+THEME_LOCK_WALLPAPER=
+lock_sync_dir="${XDG_DATA_HOME:-$HOME/.local/share}/theme-sync"
+lock_sync_wallpaper="$lock_sync_dir/login-background.jpg"
+
+if [ -n "${THEME_WALLPAPER:-}" ]; then
+  mkdir -p "$lock_sync_dir"
+  lock_tmp=$(mktemp "${lock_sync_wallpaper}.XXXXXX")
+  wallpaper_extension=$(printf '%s' "${THEME_WALLPAPER##*.}" | tr '[:upper:]' '[:lower:]')
+  lock_rendered=0
+
+  case "$wallpaper_extension" in
+    jpg|jpeg)
+      if install -m 0644 "$THEME_WALLPAPER" "$lock_tmp"; then
+        lock_rendered=1
+      fi
+      ;;
+    gif|mkv|mov|mp4|webm)
+      if command -v ffmpeg >/dev/null 2>&1 && \
+         ffmpeg -loglevel error -y -ss 1 -i "$THEME_WALLPAPER" \
+           -frames:v 1 -f image2 -vcodec mjpeg "$lock_tmp"; then
+        lock_rendered=1
+      fi
+      ;;
+    *)
+      if command -v magick >/dev/null 2>&1 && \
+         magick "${THEME_WALLPAPER}[0]" -auto-orient -quality 92 "jpg:$lock_tmp"; then
+        lock_rendered=1
+      fi
+      ;;
+  esac
+
+  if [ "$lock_rendered" = 1 ]; then
+    chmod 0644 "$lock_tmp"
+    mv "$lock_tmp" "$lock_sync_wallpaper"
+  else
+    rm -f "$lock_tmp"
+    printf 'warning: could not render lock/greeter wallpaper: %s\n' "$THEME_WALLPAPER" >&2
+  fi
+
+  if [ -f "$lock_sync_wallpaper" ]; then
+    THEME_LOCK_WALLPAPER=$lock_sync_wallpaper
+  fi
+fi
+export THEME_LOCK_WALLPAPER
+
 render_template "$theme_dir/waybar.css.tmpl" "$theme_dir/waybar.css"
 render_template "$config_home/fuzzel/fuzzel.ini.tmpl" "$config_home/fuzzel/fuzzel.ini"
 render_template "$config_home/mako/config.tmpl" "$config_home/mako/config"
 render_template "$config_home/swaylock/config.tmpl" "$config_home/swaylock/config"
+render_template "$config_home/gtklock/config.ini.tmpl" "$config_home/gtklock/config.ini"
+render_template "$config_home/gtklock/style.css.tmpl" "$config_home/gtklock/style.css"
 render_template "$config_home/kitty/theme.conf.tmpl" "$config_home/kitty/theme.conf"
 render_template "$config_home/tmux/theme.conf.tmpl" "$config_home/tmux/theme.conf"
 render_template "$config_home/nvim/lua/generated-theme.lua.tmpl" "$config_home/nvim/lua/generated-theme.lua"
+render_template "$config_home/yazi/theme.toml.tmpl" "$config_home/yazi/theme.toml"
 render_template "$config_home/niri/theme.kdl.tmpl" "$config_home/niri/theme.kdl"
+render_template "$config_home/quickshell/theme.js.tmpl" "$config_home/quickshell/theme.js"
 render_template "$config_home/gtk-3.0/settings.ini.tmpl" "$config_home/gtk-3.0/settings.ini"
 render_template "$config_home/gtk-3.0/gtk.css.tmpl" "$config_home/gtk-3.0/gtk.css"
 render_template "$config_home/gtk-4.0/settings.ini.tmpl" "$config_home/gtk-4.0/settings.ini"
 render_template "$config_home/gtk-4.0/gtk.css.tmpl" "$config_home/gtk-4.0/gtk.css"
 render_template "$config_home/environment.d/90-cyberdream.conf.tmpl" "$config_home/environment.d/90-cyberdream.conf"
+render_template "$config_home/starship.toml.tmpl" "$config_home/starship.toml"
+render_template "$config_home/zellij/themes/desktop.kdl.tmpl" "$config_home/zellij/themes/desktop.kdl"
+render_template "$config_home/zellij/layouts/desktop.kdl.tmpl" "$config_home/zellij/layouts/desktop.kdl"
+render_template "$config_home/tealdeer/config.toml.tmpl" "$config_home/tealdeer/config.toml"
+render_template "$config_home/posting/themes/desktop.yaml.tmpl" "$HOME/.local/share/posting/themes/desktop.yaml"
+render_template "$config_home/btop/themes/desktop.theme.tmpl" "$config_home/btop/themes/desktop.theme"
+render_template "$config_home/lazygit/config.yml.tmpl" "$config_home/lazygit/config.yml"
+if [ -f "$config_home/spicetify/Themes/Desktop/user.css" ]; then
+  render_template "$theme_dir/spicetify-color.ini.tmpl" "$config_home/spicetify/Themes/Desktop/color.ini"
+fi
+
+# Delta uses bat's native syntax themes plus palette-specific decorations.
+if command -v git >/dev/null 2>&1; then
+  git config --global delta.syntax-theme "$THEME_SYNTAX"
+  git config --global delta.file-style "bold #$THEME_BRIGHT"
+  git config --global delta.line-numbers-left-style "#$THEME_FG_DIM"
+  git config --global delta.line-numbers-right-style "#$THEME_FG_DIM"
+  git config --global delta.line-numbers-minus-style "#$THEME_RED"
+  git config --global delta.line-numbers-plus-style "#$THEME_GREEN"
+  git config --global delta.minus-style "syntax #$THEME_BG_ALT"
+  git config --global delta.minus-emph-style "syntax #$THEME_MUTED"
+  git config --global delta.plus-style "syntax #$THEME_BG_ALT"
+  git config --global delta.plus-emph-style "syntax #$THEME_BG_HIGHLIGHT"
+fi
 
 vivaldi_dir="$theme_dir/vivaldi/$THEME_NAME"
 vivaldi_zip="$theme_dir/vivaldi/$THEME_NAME.zip"
@@ -89,13 +188,20 @@ if command -v jq >/dev/null 2>&1 && [ -f "$vivaldi_prefs" ] && ! pgrep -x vivald
   mv "$vivaldi_tmp" "$vivaldi_prefs"
 fi
 
-if [ -n "${THEME_WALLPAPER:-}" ]; then
-  require_file "$THEME_WALLPAPER"
-fi
-
 # Touch the importing stylesheet so Waybar notices imported theme changes.
 if [ -f "$config_home/waybar/style.css" ]; then
   touch "$config_home/waybar/style.css"
+fi
+
+# Quickshell caches imported JavaScript libraries across QML hot reloads.
+# Restart the active shell so the freshly generated theme.js is re-imported,
+# and stop Cava helpers left behind by previous hot reloads.
+if command -v qs >/dev/null 2>&1 && [ -f "$config_home/quickshell/shell.qml" ]; then
+  quickshell_uid=$(id -u)
+  qs kill -p "$config_home/quickshell" >/dev/null 2>&1 || true
+  pkill -f "$config_home/quickshell/scripts/cava.sh" 2>/dev/null || true
+  pkill -f "cava -p ${TMPDIR:-/tmp}/quickshell_cava_${quickshell_uid}_" 2>/dev/null || true
+  qs -p "$config_home/quickshell" -d >/dev/null 2>&1 || true
 fi
 
 if command -v makoctl >/dev/null 2>&1 && pgrep -x mako >/dev/null 2>&1; then
@@ -103,7 +209,7 @@ if command -v makoctl >/dev/null 2>&1 && pgrep -x mako >/dev/null 2>&1; then
 fi
 
 if command -v gsettings >/dev/null 2>&1; then
-  gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface color-scheme "$THEME_COLOR_SCHEME" 2>/dev/null || true
   gsettings set org.gnome.desktop.interface gtk-theme "$THEME_GTK_THEME" 2>/dev/null || true
   gsettings set org.gnome.desktop.interface cursor-theme "$THEME_CURSOR" 2>/dev/null || true
   gsettings set org.gnome.desktop.interface cursor-size "$THEME_CURSOR_SIZE" 2>/dev/null || true
@@ -114,10 +220,30 @@ if pgrep -x kitty >/dev/null 2>&1; then
 fi
 
 if command -v tmux >/dev/null 2>&1 && tmux list-sessions >/dev/null 2>&1; then
-  tmux source-file "$config_home/tmux/tmux.conf" >/dev/null 2>&1 || true
+  # The active tmux configuration lives in ~/.tmux.conf. Reload it so the
+  # freshly rendered theme.conf is applied to every running client.
+  if [ -f "$HOME/.tmux.conf" ]; then
+    tmux source-file "$HOME/.tmux.conf" >/dev/null 2>&1 || \
+      tmux source-file "$config_home/tmux/theme.conf" >/dev/null 2>&1 || true
+  else
+    tmux source-file "$config_home/tmux/theme.conf" >/dev/null 2>&1 || true
+  fi
 fi
 
-if [ -n "${WAYLAND_DISPLAY:-}" ] && command -v swaybg >/dev/null 2>&1; then
+# Keep Spotify on the shared desktop palette. Use the absolute installation
+# path because graphical sessions do not necessarily source ~/.zshrc.
+spicetify_bin="$HOME/.spicetify/spicetify"
+if [ -x "$spicetify_bin" ] && [ -f "$config_home/spicetify/Themes/Desktop/color.ini" ]; then
+  if "$spicetify_bin" config current_theme Desktop color_scheme Desktop >/dev/null 2>&1; then
+    "$spicetify_bin" refresh >/dev/null 2>&1 || \
+      printf 'warning: Spotify theme refresh failed; run spicetify backup apply\n' >&2
+  fi
+fi
+
+if [ "${APPLY_THEME_WALLPAPER:-1}" != 0 ] && \
+   [ -n "${THEME_WALLPAPER:-}" ] && \
+   [ -n "${WAYLAND_DISPLAY:-}" ] && \
+   command -v swaybg >/dev/null 2>&1; then
   /home/Ugzher/.local/bin/apply-wallpaper >/dev/null 2>&1 &
 fi
 

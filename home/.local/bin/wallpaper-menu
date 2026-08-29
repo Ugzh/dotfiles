@@ -1,0 +1,46 @@
+#!/usr/bin/env sh
+set -eu
+
+wallpaper_dir="$HOME/Pictures/Wallpapers"
+config_home=${XDG_CONFIG_HOME:-"$HOME/.config"}
+theme_env="$config_home/theme/current.env"
+
+[ -f "$theme_env" ] || {
+  printf 'missing file: %s\n' "$theme_env" >&2
+  exit 1
+}
+
+set -a
+. "$theme_env"
+set +a
+
+: "${THEME_NAME:?THEME_NAME is not set}"
+override_dir="$config_home/theme/wallpapers"
+override_file="$override_dir/$THEME_NAME.env"
+
+[ -d "$wallpaper_dir" ] || {
+  printf 'missing wallpaper directory: %s\n' "$wallpaper_dir" >&2
+  exit 1
+}
+
+selection=$(find "$wallpaper_dir" -maxdepth 1 -type f \
+  \( -iname '*.avif' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.jpeg' \
+     -o -iname '*.jpg' -o -iname '*.mkv' -o -iname '*.mov' -o -iname '*.mp4' \
+     -o -iname '*.png' -o -iname '*.webm' -o -iname '*.webp' \) \
+  -printf '%f\n' | sort | fuzzel --dmenu \
+    --prompt="󰸉  $THEME_NAME > " \
+    --placeholder='Choose this theme wallpaper...' \
+    --lines=8 \
+    --width=42 \
+    --no-sort) || exit 0
+
+[ -n "$selection" ] || exit 0
+wallpaper="$wallpaper_dir/$selection"
+[ -f "$wallpaper" ] || exit 1
+
+mkdir -p "$override_dir"
+tmp=$(mktemp "${override_file}.XXXXXX")
+printf 'THEME_WALLPAPER=%s\nTHEME_WALLPAPER_MODE=fit\n' "$wallpaper" > "$tmp"
+mv "$tmp" "$override_file"
+
+exec /home/Ugzher/.local/bin/apply-theme "$THEME_NAME"

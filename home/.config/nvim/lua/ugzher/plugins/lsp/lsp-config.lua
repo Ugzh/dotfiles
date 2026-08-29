@@ -9,6 +9,209 @@ return {
 	},
 	config = function()
 		local capabilities = require("blink.cmp").get_lsp_capabilities()
+		local typescript_servers = { "tsgo", "ts_ls" }
+		local typescript_server_set = { tsgo = true, ts_ls = true }
+		local typescript_filetypes = {
+			javascript = true,
+			javascriptreact = true,
+			typescript = true,
+			typescriptreact = true,
+		}
+		local typescript_state_file = vim.fs.joinpath(vim.fn.stdpath("state"), "ugzher", "typescript-lsp.json")
+		local default_typescript_root_dirs = {
+			tsgo = vim.lsp.config.tsgo.root_dir,
+			ts_ls = vim.lsp.config.ts_ls.root_dir,
+		}
+		local typescript_preferences
+
+		local function canonical_path(path)
+			return path and vim.fs.normalize(vim.uv.fs_realpath(path) or path) or nil
+		end
+
+		local function load_typescript_preferences()
+			if typescript_preferences then
+				return typescript_preferences
+			end
+
+			typescript_preferences = {}
+			local ok, lines = pcall(vim.fn.readfile, typescript_state_file)
+			if not ok then
+				return typescript_preferences
+			end
+
+			local decoded, values = pcall(vim.json.decode, table.concat(lines, "\n"))
+			if decoded and type(values) == "table" then
+				for root, server in pairs(values) do
+					if type(root) == "string" and typescript_server_set[server] then
+						typescript_preferences[canonical_path(root)] = server
+					end
+				end
+			end
+
+			return typescript_preferences
+		end
+
+		local function typescript_server_for(root)
+			return load_typescript_preferences()[canonical_path(root)] or "tsgo"
+		end
+
+		local function save_typescript_preferences()
+			vim.fn.mkdir(vim.fs.dirname(typescript_state_file), "p")
+			local encoded = vim.json.encode(load_typescript_preferences())
+			local ok, err = pcall(vim.fn.writefile, { encoded }, typescript_state_file)
+			if not ok then
+				vim.notify("Impossible d'enregistrer le choix LSP TypeScript : " .. tostring(err), vim.log.levels.ERROR)
+			end
+			return ok
+		end
+
+		local function resolve_typescript_root(bufnr)
+			local root
+			default_typescript_root_dirs.tsgo(bufnr, function(directory)
+				root = canonical_path(directory)
+			end)
+			return root
+		end
+
+		local function selected_typescript_root_dir(server)
+			return function(bufnr, on_dir)
+				default_typescript_root_dirs[server](bufnr, function(directory)
+					local root = canonical_path(directory)
+					if typescript_server_for(root) == server then
+						on_dir(root)
+					end
+				end)
+			end
+		end
+
+		local function buffer_belongs_to_root(bufnr, root)
+			if not vim.api.nvim_buf_is_loaded(bufnr) or not typescript_filetypes[vim.bo[bufnr].filetype] then
+				return false
+			end
+			local filename = canonical_path(vim.api.nvim_buf_get_name(bufnr))
+			return filename ~= nil and (filename == root or vim.startswith(filename, root .. "/"))
+		end
+
+		local function start_typescript_server(server, root)
+			local config = vim.deepcopy(vim.lsp.config[server])
+			config.root_dir = root
+			for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+				if buffer_belongs_to_root(bufnr, root) then
+					vim.lsp.start(config, { bufnr = bufnr })
+				end
+			end
+		end
+
+		local function set_typescript_server(root, server)
+			root = canonical_path(root)
+			if not root then
+				return
+			end
+			if not typescript_server_set[server] then
+				vim.notify("LSP TypeScript inconnu : " .. tostring(server), vim.log.levels.ERROR)
+				return
+			end
+
+			local current = typescript_server_for(root)
+			if current == server then
+				vim.notify(("TypeScript utilise déjà %s pour %s"):format(server, root), vim.log.levels.INFO)
+				return
+			end
+
+			load_typescript_preferences()[root] = server
+			if not save_typescript_preferences() then
+				load_typescript_preferences()[root] = current
+				return
+			end
+
+			for _, client in ipairs(vim.lsp.get_clients()) do
+				if typescript_server_set[client.name] and canonical_path(client.root_dir) == root then
+					client:stop(true)
+				end
+			end
+
+			start_typescript_server(server, root)
+			vim.notify(("LSP TypeScript : %s pour %s"):format(server, root), vim.log.levels.INFO)
+		end
+
+		local function select_typescript_server(requested)
+			local root = resolve_typescript_root(0)
+			if not root then
+				vim.notify("Aucun projet TypeScript/JavaScript standard détecté ici", vim.log.levels.WARN)
+				return
+			end
+
+			if requested and requested ~= "" then
+				set_typescript_server(root, requested)
+				return
+			end
+
+			local current = typescript_server_for(root)
+			vim.ui.select(typescript_servers, {
+				prompt = "LSP TypeScript pour " .. vim.fn.fnamemodify(root, ":~"),
+				format_item = function(server)
+					local description = server == "tsgo" and "natif, rapide, défaut"
+						or "historique, basé sur tsserver"
+					local selected = server == current and "  ✓ actuel" or ""
+					return ("%s — %s%s"):format(server, description, selected)
+				end,
+			}, function(server)
+				if server then
+					set_typescript_server(root, server)
+				end
+			end)
+		end
+
+		local oxlint_config_files = {
+			".oxlintrc.json",
+			".oxlintrc.jsonc",
+			"oxlint.config.ts",
+			"oxlint.config.mts",
+		}
+
+		local function package_dependency_root(filename, dependency)
+			local dirname = vim.fs.dirname(filename)
+			while dirname do
+				local package_file = dirname .. "/package.json"
+				if vim.uv.fs_stat(package_file) then
+					local ok, lines = pcall(vim.fn.readfile, package_file)
+					if ok then
+						local decoded, package = pcall(vim.json.decode, table.concat(lines, "\n"))
+						if decoded then
+							local dependencies = package.dependencies or {}
+							local dev_dependencies = package.devDependencies or {}
+							if dependencies[dependency] or dev_dependencies[dependency] then
+								return dirname
+							end
+						end
+					end
+				end
+
+				local parent = vim.fs.dirname(dirname)
+				if parent == dirname then
+					break
+				end
+				dirname = parent
+			end
+		end
+
+		local function oxlint_root(bufnr)
+			local filename = vim.api.nvim_buf_get_name(bufnr)
+			local config_file = vim.fs.find(oxlint_config_files, { path = filename, upward = true })[1]
+			if config_file then
+				return vim.fs.dirname(config_file)
+			end
+			return package_dependency_root(filename, "oxlint")
+		end
+
+		local function without_oxlint(root_dir)
+			return function(bufnr, on_dir)
+				if oxlint_root(bufnr) then
+					return
+				end
+				root_dir(bufnr, on_dir)
+			end
+		end
 
 		vim.diagnostic.config({
 			severity_sort = true,
@@ -30,6 +233,16 @@ return {
 		vim.api.nvim_create_autocmd("LspAttach", {
 			group = vim.api.nvim_create_augroup("ugzher-lsp-attach", { clear = true }),
 			callback = function(event)
+				local client = vim.lsp.get_client_by_id(event.data.client_id)
+				if
+					client
+					and typescript_server_set[client.name]
+					and typescript_server_for(client.root_dir) ~= client.name
+				then
+					client:stop(true)
+					return
+				end
+
 				local opts = { buffer = event.buf, silent = true }
 				local map = function(lhs, rhs, desc, modes)
 					opts.desc = "LSP: " .. desc
@@ -54,7 +267,6 @@ return {
 				map("<leader>cd", vim.diagnostic.open_float, "Diagnostic de la ligne")
 				map("<leader>cR", "<cmd>lsp restart<cr>", "Redémarrer le serveur")
 
-				local client = vim.lsp.get_client_by_id(event.data.client_id)
 				if client and client:supports_method("textDocument/inlayHint") then
 					vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
 					map("<leader>uh", function()
@@ -78,30 +290,10 @@ return {
 			},
 		})
 
-		vim.lsp.config("vtsls", {
-			root_dir = function(bufnr, on_dir)
-				if vim.fs.root(bufnr, { "deno.json", "deno.jsonc", "deno.lock" }) then
-					return
-				end
-				local root = vim.fs.root(bufnr, {
-					"tsconfig.json",
-					"jsconfig.json",
-					"package.json",
-					"pnpm-lock.yaml",
-					"yarn.lock",
-					"package-lock.json",
-					"bun.lock",
-					".git",
-				})
-				if root then
-					on_dir(root)
-				end
-			end,
+		vim.lsp.config("tsgo", {
+			root_dir = selected_typescript_root_dir("tsgo"),
 			settings = {
-				complete_function_calls = true,
 				typescript = {
-					updateImportsOnFileMove = { enabled = "always" },
-					suggest = { completeFunctionCalls = true },
 					inlayHints = {
 						parameterNames = { enabled = "literals" },
 						parameterTypes = { enabled = true },
@@ -112,6 +304,62 @@ return {
 					},
 				},
 			},
+		})
+		vim.lsp.config("ts_ls", {
+			root_dir = selected_typescript_root_dir("ts_ls"),
+		})
+
+		vim.api.nvim_create_user_command("TypeScriptLsp", function(command)
+			select_typescript_server(command.args)
+		end, {
+			nargs = "?",
+			complete = function()
+				return typescript_servers
+			end,
+			desc = "Choisir le LSP TypeScript pour le projet courant",
+		})
+		vim.keymap.set("n", "<leader>cT", function()
+			select_typescript_server()
+		end, { desc = "Choisir le LSP TypeScript du projet" })
+
+		vim.lsp.config("oxlint", {
+			root_dir = function(bufnr, on_dir)
+				local root = oxlint_root(bufnr)
+				if root then
+					on_dir(root)
+				end
+			end,
+		})
+
+		local eslint_before_init = vim.lsp.config.eslint.before_init
+		vim.lsp.config("eslint", {
+			root_dir = without_oxlint(vim.lsp.config.eslint.root_dir),
+			before_init = function(params, config)
+				if eslint_before_init then
+					eslint_before_init(params, config)
+				end
+
+				local package_file = config.root_dir and config.root_dir .. "/node_modules/eslint/package.json"
+				if not package_file then
+					return
+				end
+
+				local ok, lines = pcall(vim.fn.readfile, package_file)
+				if not ok then
+					return
+				end
+
+				local decoded, package = pcall(vim.json.decode, table.concat(lines, "\n"))
+				local version = decoded and type(package.version) == "string" and package.version
+				local major = version and tonumber(version:match("^(%d+)"))
+				if major == 8 then
+					config.settings.experimental.useFlatConfig = true
+				end
+			end,
+		})
+
+		vim.lsp.config("biome", {
+			root_dir = without_oxlint(vim.lsp.config.biome.root_dir),
 		})
 
 		-- Mason expose actuellement le serveur Kotlin officiel sous ce nom.
@@ -181,7 +429,9 @@ return {
 
 		vim.lsp.enable({
 			"lua_ls",
-			"vtsls",
+			"tsgo",
+			"ts_ls",
+			"oxlint",
 			"kotlin_lsp",
 			"angularls",
 			"eslint",

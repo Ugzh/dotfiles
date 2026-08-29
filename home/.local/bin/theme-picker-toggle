@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+set -eu
+
+picker_dir="${XDG_CONFIG_HOME:-$HOME/.config}/theme-picker"
+theme_env="${XDG_CONFIG_HOME:-$HOME/.config}/theme/current.env"
+wallpaper_dir="${XDG_CONFIG_HOME:-$HOME/.config}/theme/wallpapers"
+active_theme=
+
+wallpaper_for() {
+  wallpaper_file="$wallpaper_dir/$1.env"
+  THEME_WALLPAPER=
+  if [ -f "$wallpaper_file" ]; then
+    . "$wallpaper_file"
+  fi
+  printf '%s' "$THEME_WALLPAPER"
+}
+
+if [ -f "$theme_env" ]; then
+  . "$theme_env"
+  active_theme=${THEME_MODE:-}
+fi
+
+if qs -p "$picker_dir" kill >/dev/null 2>&1; then
+  exit 0
+fi
+
+export THEME_PICKER_ACTIVE="$active_theme"
+export THEME_PICKER_OBSIDIAN_ROSE_WALLPAPER="$(wallpaper_for obsidian-rose)"
+export THEME_PICKER_CATPPUCCIN_MOCHA_WALLPAPER="$(wallpaper_for catppuccin-mocha)"
+export THEME_PICKER_GRUVBOX_SOFT_DARK_WALLPAPER="$(wallpaper_for gruvbox-soft-dark)"
+export THEME_PICKER_MELANGE_DARK_WALLPAPER="$(wallpaper_for melange-dark)"
+export THEME_PICKER_GRUVBOX_SOFT_LIGHT_WALLPAPER="$(wallpaper_for gruvbox-soft-light)"
+export THEME_PICKER_NORD_WALLPAPER="$(wallpaper_for nord)"
+export THEME_PICKER_OXOCARBON_WALLPAPER="$(wallpaper_for oxocarbon)"
+export THEME_PICKER_SEOUL256_DARK_WALLPAPER="$(wallpaper_for seoul256-dark)"
+export THEME_PICKER_COOL_PANDA_WALLPAPER="$(wallpaper_for cool-panda)"
+
+exec qs -p "$picker_dir" -d

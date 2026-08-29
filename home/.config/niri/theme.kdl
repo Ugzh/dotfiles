@@ -2,8 +2,8 @@
 layout {
     focus-ring {
         width 3
-        active-gradient from="#c7f36b" to="#c6a0f6" angle=45
-        inactive-color "#643b72"
+        active-gradient from="#cba6f7" to="#b4befe" angle=45
+        inactive-color "#6c7086"
     }
 
     shadow {
@@ -11,7 +11,7 @@ layout {
         softness 28
         spread 3
         offset x=0 y=6
-        color "#f15bb54d"
+        color "#11111b99"
     }
 }
 

@@ -28,6 +28,7 @@ return {
 			default = { "lazydev", "lsp", "path", "snippets", "buffer" },
 			providers = {
 				lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },
+				lsp = { min_keyword_length = 2 },
 			},
 		},
 		cmdline = { enabled = true },

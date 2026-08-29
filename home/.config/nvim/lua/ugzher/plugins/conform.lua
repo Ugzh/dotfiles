@@ -18,6 +18,13 @@ local prettier_config_files = {
 	"prettier.config.mts",
 }
 
+local dprint_config_files = {
+	"dprint.json",
+	".dprint.json",
+	"dprint.jsonc",
+	".dprint.jsonc",
+}
+
 local function has_prettier_config(dirname)
 	if #vim.fs.find(prettier_config_files, { path = dirname, upward = true }) > 0 then
 		return true
@@ -60,22 +67,27 @@ return {
 			python = { "ruff_organize_imports", "ruff_format" },
 			rust = { "rustfmt", lsp_format = "fallback" },
 			go = { "goimports", "gofumpt", stop_after_first = true },
-			javascript = { "biome", "prettier", stop_after_first = true },
-			javascriptreact = { "biome", "prettier", stop_after_first = true },
-			typescript = { "biome", "prettier", stop_after_first = true },
-			typescriptreact = { "biome", "prettier", stop_after_first = true },
-			html = { "prettier" },
-			htmlangular = { "prettier" },
-			css = { "biome", "prettier", stop_after_first = true },
-			scss = { "prettier" },
-			less = { "prettier" },
-			yaml = { "prettier" },
-			json = { "biome", "prettier", stop_after_first = true },
-			jsonc = { "biome", "prettier", stop_after_first = true },
-			markdown = { "prettier" },
+			javascript = { "dprint", "biome", "prettier", "oxfmt", stop_after_first = true },
+			javascriptreact = { "dprint", "biome", "prettier", "oxfmt", stop_after_first = true },
+			typescript = { "dprint", "biome", "prettier", "oxfmt", stop_after_first = true },
+			typescriptreact = { "dprint", "biome", "prettier", "oxfmt", stop_after_first = true },
+			html = { "dprint", "prettier", "oxfmt", stop_after_first = true },
+			htmlangular = { "dprint", "prettier", "oxfmt", stop_after_first = true },
+			css = { "dprint", "biome", "prettier", "oxfmt", stop_after_first = true },
+			scss = { "dprint", "prettier", "oxfmt", stop_after_first = true },
+			less = { "dprint", "prettier", "oxfmt", stop_after_first = true },
+			yaml = { "dprint", "prettier", "oxfmt", stop_after_first = true },
+			json = { "dprint", "biome", "prettier", "oxfmt", stop_after_first = true },
+			jsonc = { "dprint", "biome", "prettier", "oxfmt", stop_after_first = true },
+			markdown = { "dprint", "prettier", "oxfmt", stop_after_first = true },
 			prisma = { "prettier" },
 		},
 		formatters = {
+			dprint = {
+				condition = function(_, ctx)
+					return #vim.fs.find(dprint_config_files, { path = ctx.dirname, upward = true }) > 0
+				end,
+			},
 			biome = {
 				condition = function(_, ctx)
 					return #vim.fs.find({ "biome.json", "biome.jsonc" }, { path = ctx.dirname, upward = true }) > 0

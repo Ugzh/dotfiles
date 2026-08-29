@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+set -eu
+
+choice=$(printf '%s\n' \
+  'Catppuccin Mocha' \
+  'Elysia Dark' \
+  'Elysia Light' \
+  'Gruvbox Soft Dark' \
+  'Melange Dark' \
+  'Gruvbox Soft Light' \
+  'Nord' \
+  'Obsidian Rose' \
+  'Seoul256 Dark' \
+  'Cool Panda' | \
+  fuzzel --dmenu \
+    --prompt='󰔎  Theme > ' \
+    --placeholder='Choose a desktop theme...' \
+    --lines=10 \
+    --width=32 \
+    --no-sort) || exit 0
+
+case "$choice" in
+  'Catppuccin Mocha') theme=catppuccin-mocha ;;
+  'Elysia Dark') theme=elysia-dark ;;
+  'Elysia Light') theme=elysia-light ;;
+  'Gruvbox Soft Dark') theme=gruvbox-soft-dark ;;
+  'Melange Dark') theme=melange-dark ;;
+  'Gruvbox Soft Light') theme=gruvbox-soft-light ;;
+  'Nord') theme=nord ;;
+  'Obsidian Rose') theme=obsidian-rose ;;
+  'Seoul256 Dark') theme=seoul256-dark ;;
+  'Cool Panda') theme=cool-panda ;;
+  *) exit 0 ;;
+esac
+
+exec /home/Ugzher/.local/bin/apply-theme "$theme"

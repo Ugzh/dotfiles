@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Obsidian
+Comment=Notes and knowledge base
+Exec=/home/Ugzher/.local/opt/obsidian/Obsidian.AppImage --ozone-platform=wayland
+Icon=/home/Ugzher/.local/share/icons/hicolor/512x512/apps/obsidian.png
+Terminal=false
+Type=Application
+Categories=Office;Utility;
+StartupNotify=true
+MimeType=x-scheme-handler/obsidian;

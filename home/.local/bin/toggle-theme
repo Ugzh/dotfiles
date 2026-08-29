@@ -7,9 +7,16 @@ if [ -f "$theme_env" ]; then
   . "$theme_env"
 fi
 
-if [ "${THEME_MODE:-ultraviolet}" = "night" ]; then
-  exec /home/Ugzher/.local/bin/apply-theme ultraviolet
-else
-  exec /home/Ugzher/.local/bin/apply-theme night
-fi
-
+case "${THEME_MODE:-obsidian-rose}" in
+  obsidian-rose) exec /home/Ugzher/.local/bin/apply-theme catppuccin-mocha ;;
+  catppuccin-mocha) exec /home/Ugzher/.local/bin/apply-theme gruvbox-soft-dark ;;
+  gruvbox-soft-dark) exec /home/Ugzher/.local/bin/apply-theme melange-dark ;;
+  melange-dark) exec /home/Ugzher/.local/bin/apply-theme gruvbox-soft-light ;;
+  gruvbox-soft-light) exec /home/Ugzher/.local/bin/apply-theme elysia-light ;;
+  elysia-light) exec /home/Ugzher/.local/bin/apply-theme elysia-dark ;;
+  elysia-dark) exec /home/Ugzher/.local/bin/apply-theme nord ;;
+  nord) exec /home/Ugzher/.local/bin/apply-theme seoul256-dark ;;
+  seoul256-dark) exec /home/Ugzher/.local/bin/apply-theme cool-panda ;;
+  cool-panda) exec /home/Ugzher/.local/bin/apply-theme obsidian-rose ;;
+  *) exec /home/Ugzher/.local/bin/apply-theme obsidian-rose ;;
+esac

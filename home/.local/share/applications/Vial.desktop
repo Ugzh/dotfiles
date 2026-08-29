@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Vial
+Comment=Configure a Vial-compatible keyboard
+Type=Application
+Exec=env QT_QPA_PLATFORM=wayland QT_SCALE_FACTOR=2 /home/Ugzher/.local/bin/vial.AppImage
+Icon=Vial
+Terminal=false
+Categories=Utility;
+Keywords=keyboard;keymap;QMK;
+StartupNotify=true
+X-AppImage-Version=0.7.5

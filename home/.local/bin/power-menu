@@ -51,10 +51,10 @@ action=$(printf '%s\n' \
 
 case "$action" in
   '1 Lock')
-    exec swaylock
+    exec gtklock
     ;;
   '2 Suspend')
-    swaylock -f &
+    gtklock --daemonize
     run systemctl -i suspend
     ;;
   '3 Logout')

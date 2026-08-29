@@ -16,11 +16,11 @@ outer-margin=0
 border-size=3
 border-radius=8
 
-background-color=#0d0911f4
-text-color=#f7eff9ff
-border-color=#643b72ff
+background-color=#1e1e2ef4
+text-color=#cdd6f4ff
+border-color=#cba6f7ff
 
-font=GeistMono Nerd Font Mono 11
+font=Lilex Nerd Font Mono 11
 
 icons=1
 max-icon-size=38
@@ -35,17 +35,17 @@ max-visible=4
 group-by=app-name
 
 [urgency=low]
-background-color=#0d0911f4
-text-color=#f7eff9cc
-border-color=#3d2748ff
+background-color=#1e1e2ef4
+text-color=#cdd6f4cc
+border-color=#45475aff
 
 [urgency=normal]
-background-color=#0d0911f4
-text-color=#f7eff9ff
-border-color=#643b72ff
+background-color=#1e1e2ef4
+text-color=#cdd6f4ff
+border-color=#b4befeff
 
 [urgency=high]
-background-color=#0d0911ff
-text-color=#c7f36bff
-border-color=#c7f36bff
+background-color=#1e1e2eff
+text-color=#cba6f7ff
+border-color=#f38ba8ff
 default-timeout=8000

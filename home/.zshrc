@@ -28,6 +28,10 @@ if command -v mise >/dev/null 2>&1; then
   eval "$(mise activate zsh)"
 fi
 
+if command -v git>/dev/null 2>&1; then
+  alias gc="git clone"
+fi
+
 
 HISTFILE="$HOME/.zsh_history"
 HISTSIZE=10000
@@ -51,7 +55,14 @@ if [[ -f "$HOME/.local/share/zsh/plugins/fzf-tab/fzf-tab.plugin.zsh" ]]; then
   zstyle ':completion:*:descriptions' format '[%d]'
   zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
   zstyle ':fzf-tab:*' switch-group '<' '>'
-  zstyle ':fzf-tab:*' fzf-flags --height=60% --layout=reverse --border
+  zstyle ':fzf-tab:*' fzf-flags \
+    --height=60% \
+    --layout=reverse \
+    --border \
+    --preview-window=right:55%:wrap
+  # ftb-tmux-popup otherwise sizes itself only from the completion labels and
+  # leaves no usable room for the preview when directory names are short.
+  zstyle ':fzf-tab:*' popup-min-size 100 14
   zstyle ':fzf-tab:complete:cd:*' fzf-preview \
     'eza -la --icons=always --color=always $realpath 2>/dev/null'
 
@@ -75,6 +86,15 @@ fi
 if command -v bat >/dev/null 2>&1; then
   alias cat="bat"
 fi
+
+if command -v kubectl>/dev/null 2>&1; then
+  alias k="kubectl"
+fi
+
+if command -v kubectx>/dev/null 2>&1; then
+  alias ktx="kubectx"
+fi
+
 
 if command -v xh >/dev/null 2>&1; then
   alias xhs="xh --https"
@@ -241,3 +261,12 @@ bindkey -M vicmd '^R' atuin-search-vicmd
 export ATUIN_TMUX_POPUP=true
 export ATUIN_TMUX_POPUP_WIDTH="90%"
 export ATUIN_TMUX_POPUP_HEIGHT="70%"
+
+# bun completions
+[ -s "/home/Ugzher/.bun/_bun" ] && source "/home/Ugzher/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+export PATH=$PATH:/home/Ugzher/.spicetify

@@ -20,6 +20,8 @@
 **/__pycache__/
 **/*.log
 **/*.bak
+**/*.backup-*
 home/.config/atuin/atuin-receipt.json
 home/.config/zellij/plugins/
-
+home/.config/spicetify/CustomApps/
+home/.config/spicetify/Extensions/

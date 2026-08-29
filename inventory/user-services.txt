@@ -1,0 +1,11 @@
+codex-update-manager.service
+dbus-broker.service
+dbus.socket
+grub-boot-success.timer
+obex.service
+pipewire-pulse.socket
+pipewire.socket
+podman.socket
+systemd-tmpfiles-clean.timer
+systemd-tmpfiles-setup.service
+wireplumber.service
