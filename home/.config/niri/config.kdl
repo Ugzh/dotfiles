@@ -277,8 +277,6 @@ include "theme.kdl"
 // Barre principale : Quickshell. Pour revenir à Waybar, inverser les deux lignes.
 // spawn-at-startup "waybar"
 spawn-at-startup "qs"
-// Restore the static wallpaper associated with the current color preset.
-spawn-at-startup "/home/Ugzher/.local/bin/apply-wallpaper"
 
 spawn-at-startup "sh" "-c" "wl-paste --type text --watch cliphist store"
 spawn-at-startup "sh" "-c" "wl-paste --type image --watch cliphist store"
@@ -352,10 +350,9 @@ window-rule {
     // block-out-from "screencast"
 }
 
-// Example: enable rounded corners for all windows.
-// Disabled: application tabs keep their native square geometry.
-/-window-rule {
-    geometry-corner-radius 12
+// Keep one shared silhouette across every application and color preset.
+window-rule {
+    geometry-corner-radius 14
     clip-to-geometry true
 }
 
@@ -384,8 +381,8 @@ binds {
     Mod+RETURN hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
     Mod+R hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
     Mod+T repeat=false hotkey-overlay-title="Choose desktop theme" { spawn "/home/Ugzher/.local/bin/theme-menu"; }
-    Super+Shift+W repeat=false hotkey-overlay-title="Choose theme and wallpaper" { spawn "/home/Ugzher/.local/bin/theme-picker-toggle"; }
-    Mod+Shift+Return hotkey-overlay-title="Power Menu: fuzzel" { spawn "/home/Ugzher/.local/bin/power-menu"; }
+    Super+Shift+W repeat=false hotkey-overlay-title="Choose wallpaper: DMS" { spawn "dms" "ipc" "call" "settings" "openWith" "wallpaper"; }
+    Mod+Shift+Return hotkey-overlay-title="Power Menu: DMS" { spawn "dms" "ipc" "call" "powermenu" "toggle"; }
     Mod+Alt+R repeat=false hotkey-overlay-title="Start/Stop Screen Recording" { spawn "/home/Ugzher/.local/bin/toggle-screen-recording"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.

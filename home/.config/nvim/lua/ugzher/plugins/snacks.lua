@@ -27,27 +27,18 @@ local function code_action_number_actions()
 	return actions
 end
 
-local function explorer_open_in_window(picker, item)
-	if not item or item.dir then
-		picker:action("confirm")
-		return
-	end
-
-	local target_windows = vim.tbl_filter(function(window)
-		local buffer = vim.api.nvim_win_get_buf(window)
-		return vim.api.nvim_win_get_config(window).relative == "" and not vim.bo[buffer].filetype:find("^snacks")
-	end, vim.api.nvim_tabpage_list_wins(0))
-
-	if #target_windows <= 1 then
-		picker:action("confirm")
-		return
-	end
-
-	local cancelled = Snacks.picker.actions.pick_win(picker, item, {})
-	if not cancelled then
-		picker:action("confirm")
-	end
-end
+-- Snacks has read the chunk shape from either `indent` or `scope`
+-- depending on the version. Keep both paths in sync.
+local indent_chunk = {
+	enabled = true,
+	char = {
+		corner_top = "┌",
+		corner_bottom = "└",
+		horizontal = "─",
+		vertical = "│",
+		arrow = "─",
+	},
+}
 
 return {
 	"folke/snacks.nvim",
@@ -58,7 +49,10 @@ return {
 		bigfile = { enabled = true },
 		dashboard = { enabled = true },
 		explorer = { enabled = true, replace_netrw = true },
-		indent = { enabled = true },
+		indent = {
+			enabled = true,
+			chunk = indent_chunk,
+		},
 		input = { enabled = true },
 		notifier = { enabled = true, timeout = 3000 },
 		picker = {
@@ -67,27 +61,30 @@ return {
 			sources = {
 				explorer = {
 					hidden = true,
-					ignored = true,
-					exclude = { "dist" },
+					ignored = false,
+					jump = { close = true },
 					layout = {
-						preset = "sidebar",
 						preview = false,
+						hidden = { "input" },
 						layout = {
-							width = 44,
-							min_width = 36,
+							backdrop = 60,
+							width = 0.72,
+							min_width = 70,
+							max_width = 120,
+							height = 0.72,
+							min_height = 20,
+							box = "vertical",
 							border = "rounded",
 							title = "   {title} ",
 							title_pos = "left",
+							{ win = "input", height = 1, border = "bottom" },
+							{ win = "list", border = "none" },
 						},
-					},
-					actions = {
-						open_in_window = explorer_open_in_window,
 					},
 					win = {
 						list = {
 							keys = {
-								["<CR>"] = { "open_in_window", desc = "Ouvrir dans une fenêtre" },
-								["l"] = { "open_in_window", desc = "Ouvrir dans une fenêtre" },
+								["/"] = { "picker_files", desc = "Rechercher un fichier dans le dossier" },
 							},
 						},
 					},
@@ -105,7 +102,10 @@ return {
 			},
 		},
 		quickfile = { enabled = true },
-		scope = { enabled = true },
+		scope = {
+			enabled = true,
+			chunk = indent_chunk,
+		},
 		statuscolumn = { enabled = true },
 		terminal = { enabled = true },
 		words = { enabled = true },
@@ -176,11 +176,29 @@ return {
 			desc = "Diagnostics",
 		},
 		{
-			"<leader>ef",
+			"<leader>fm",
+			function()
+				Snacks.picker.lsp_symbols({
+					filter = { default = { "Method" } },
+					tree = false,
+				})
+			end,
+			desc = "Méthodes du fichier",
+		},
+		{
+			"<leader>go",
+			function()
+				Snacks.gitbrowse({ what = "file" })
+			end,
+			desc = "Ouvrir la ligne sur le dépôt distant",
+			mode = { "n", "x" },
+		},
+		{
+			"<leader>eF",
 			function()
 				Snacks.explorer()
 			end,
-			desc = "Explorateur",
+			desc = "Explorateur Snacks",
 		},
 		{
 			"<leader>un",
@@ -202,6 +220,13 @@ return {
 				Snacks.terminal()
 			end,
 			desc = "Terminal",
+		},
+		{
+			"<leader>.",
+			function()
+				Snacks.scratch()
+			end,
+			desc = "Ouvrir/fermer le bloc-notes",
 		},
 	},
 	init = function()

@@ -31,6 +31,7 @@ export THEME_PICKER_GRUVBOX_SOFT_DARK_WALLPAPER="$(wallpaper_for gruvbox-soft-da
 export THEME_PICKER_MELANGE_DARK_WALLPAPER="$(wallpaper_for melange-dark)"
 export THEME_PICKER_GRUVBOX_SOFT_LIGHT_WALLPAPER="$(wallpaper_for gruvbox-soft-light)"
 export THEME_PICKER_NORD_WALLPAPER="$(wallpaper_for nord)"
+export THEME_PICKER_PLATINUM_NIGHT_WALLPAPER="$(wallpaper_for platinum-night)"
 export THEME_PICKER_OXOCARBON_WALLPAPER="$(wallpaper_for oxocarbon)"
 export THEME_PICKER_SEOUL256_DARK_WALLPAPER="$(wallpaper_for seoul256-dark)"
 export THEME_PICKER_COOL_PANDA_WALLPAPER="$(wallpaper_for cool-panda)"

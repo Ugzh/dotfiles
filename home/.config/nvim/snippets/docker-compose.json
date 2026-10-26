@@ -1,0 +1,22 @@
+{
+  "Restart: no": {
+    "prefix": "no",
+    "body": "no",
+    "description": "Ne jamais redémarrer automatiquement le conteneur"
+  },
+  "Restart: always": {
+    "prefix": "always",
+    "body": "always",
+    "description": "Toujours redémarrer le conteneur"
+  },
+  "Restart: on-failure": {
+    "prefix": "on-failure",
+    "body": "on-failure",
+    "description": "Redémarrer uniquement après une erreur"
+  },
+  "Restart: unless-stopped": {
+    "prefix": "unless-stopped",
+    "body": "unless-stopped",
+    "description": "Redémarrer sauf après un arrêt explicite"
+  }
+}

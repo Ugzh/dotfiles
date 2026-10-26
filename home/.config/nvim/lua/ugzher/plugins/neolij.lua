@@ -1,5 +1,8 @@
 return {
 	"y2w8/neolij.nvim",
+	cond = function()
+		return vim.env.ZELLIJ ~= nil
+	end,
 	event = "VeryLazy",
 	opts = {},
 	keys = {

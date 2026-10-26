@@ -1,11 +1,13 @@
 return {
 	"olrtg/nvim-emmet",
-	config = function()
-		vim.keymap.set(
-			{ "n", "v" },
+	keys = {
+		{
 			"<leader>ce",
-			require("nvim-emmet").wrap_with_abbreviation,
-			{ desc = "Entourer avec une abréviation Emmet" }
-		)
-	end,
+			function()
+				require("nvim-emmet").wrap_with_abbreviation()
+			end,
+			mode = { "n", "v" },
+			desc = "Entourer avec une abréviation Emmet",
+		},
+	},
 }

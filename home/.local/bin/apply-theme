@@ -28,9 +28,9 @@ render_template() {
 
 if [ "$#" -gt 0 ]; then
   case "$1" in
-    ultraviolet|night|obsidian-rose|catppuccin-mocha|gruvbox-soft-dark|gruvbox-soft-light|elysia-light|elysia-dark|nord|oxocarbon|seoul256-dark|cool-panda|melange-dark) preset="$presets_dir/$1.env" ;;
+    ultraviolet|night|obsidian-rose|catppuccin-mocha|gruvbox-soft-dark|gruvbox-soft-light|elysia-light|elysia-dark|nord|oxocarbon|seoul256-dark|cool-panda|melange-dark|platinum-night) preset="$presets_dir/$1.env" ;;
     *)
-      printf 'unknown theme: %s (expected obsidian-rose, catppuccin-mocha, gruvbox-soft-dark, melange-dark, gruvbox-soft-light, elysia-light, elysia-dark, nord, oxocarbon, seoul256-dark or cool-panda)\n' "$1" >&2
+      printf 'unknown theme: %s (expected obsidian-rose, catppuccin-mocha, gruvbox-soft-dark, melange-dark, gruvbox-soft-light, elysia-light, elysia-dark, nord, oxocarbon, seoul256-dark, cool-panda or platinum-night)\n' "$1" >&2
       exit 2
       ;;
   esac
@@ -124,7 +124,11 @@ render_template "$config_home/gtklock/style.css.tmpl" "$config_home/gtklock/styl
 render_template "$config_home/kitty/theme.conf.tmpl" "$config_home/kitty/theme.conf"
 render_template "$config_home/tmux/theme.conf.tmpl" "$config_home/tmux/theme.conf"
 render_template "$config_home/nvim/lua/generated-theme.lua.tmpl" "$config_home/nvim/lua/generated-theme.lua"
-render_template "$config_home/yazi/theme.toml.tmpl" "$config_home/yazi/theme.toml"
+if [ "$THEME_NAME" = platinum-night ]; then
+  install -m 0644 "$theme_dir/sora/yazi.toml" "$config_home/yazi/theme.toml"
+else
+  render_template "$config_home/yazi/theme.toml.tmpl" "$config_home/yazi/theme.toml"
+fi
 render_template "$config_home/niri/theme.kdl.tmpl" "$config_home/niri/theme.kdl"
 render_template "$config_home/quickshell/theme.js.tmpl" "$config_home/quickshell/theme.js"
 render_template "$config_home/gtk-3.0/settings.ini.tmpl" "$config_home/gtk-3.0/settings.ini"
@@ -133,11 +137,15 @@ render_template "$config_home/gtk-4.0/settings.ini.tmpl" "$config_home/gtk-4.0/s
 render_template "$config_home/gtk-4.0/gtk.css.tmpl" "$config_home/gtk-4.0/gtk.css"
 render_template "$config_home/environment.d/90-cyberdream.conf.tmpl" "$config_home/environment.d/90-cyberdream.conf"
 render_template "$config_home/starship.toml.tmpl" "$config_home/starship.toml"
-render_template "$config_home/zellij/themes/desktop.kdl.tmpl" "$config_home/zellij/themes/desktop.kdl"
-render_template "$config_home/zellij/layouts/desktop.kdl.tmpl" "$config_home/zellij/layouts/desktop.kdl"
+render_template "$theme_dir/zsh-syntax.zsh.tmpl" "$config_home/zsh/theme.zsh"
+render_template "$theme_dir/fastfetch/config.jsonc.tmpl" "$config_home/fastfetch/config.jsonc"
 render_template "$config_home/tealdeer/config.toml.tmpl" "$config_home/tealdeer/config.toml"
 render_template "$config_home/posting/themes/desktop.yaml.tmpl" "$HOME/.local/share/posting/themes/desktop.yaml"
-render_template "$config_home/btop/themes/desktop.theme.tmpl" "$config_home/btop/themes/desktop.theme"
+if [ "$THEME_NAME" = platinum-night ]; then
+  install -m 0644 "$theme_dir/sora/btop.theme" "$config_home/btop/themes/desktop.theme"
+else
+  render_template "$config_home/btop/themes/desktop.theme.tmpl" "$config_home/btop/themes/desktop.theme"
+fi
 render_template "$config_home/lazygit/config.yml.tmpl" "$config_home/lazygit/config.yml"
 if [ -f "$config_home/spicetify/Themes/Desktop/user.css" ]; then
   render_template "$theme_dir/spicetify-color.ini.tmpl" "$config_home/spicetify/Themes/Desktop/color.ini"

@@ -1,6 +1,16 @@
 return {
 	"neovim/nvim-lspconfig",
 	event = { "BufReadPre", "BufNewFile" },
+	init = function()
+		vim.filetype.add({
+			pattern = {
+				[".*/compose%.ya?ml"] = "yaml.docker-compose",
+				[".*/compose%..+%.ya?ml"] = "yaml.docker-compose",
+				[".*/docker%-compose%.ya?ml"] = "yaml.docker-compose",
+				[".*/docker%-compose%..+%.ya?ml"] = "yaml.docker-compose",
+			},
+		})
+	end,
 	dependencies = {
 		"saghen/blink.cmp",
 		{ "folke/lazydev.nvim", ft = "lua", opts = {} },
@@ -9,7 +19,36 @@ return {
 	},
 	config = function()
 		local capabilities = require("blink.cmp").get_lsp_capabilities()
-		local typescript_servers = { "tsgo", "ts_ls" }
+		local diagnostic_virtual_text = { spacing = 3, prefix = "●", source = "if_many" }
+		local function format_diagnostic_virtual_line(diagnostic)
+			local message = diagnostic.message:gsub("\r", "")
+			if diagnostic.source then
+				message = diagnostic.source .. ": " .. message
+			end
+			if diagnostic.code then
+				message = diagnostic.code .. ": " .. message
+			end
+
+			local width = math.max(40, math.min(100, vim.api.nvim_win_get_width(0) - 12))
+			local lines = {}
+			for source_line in (message .. "\n"):gmatch("(.-)\n") do
+				local line = ""
+				for word in source_line:gmatch("%S+") do
+					local candidate = line == "" and word or line .. " " .. word
+					if line ~= "" and vim.fn.strdisplaywidth(candidate) > width then
+						table.insert(lines, line)
+						line = word
+					else
+						line = candidate
+					end
+				end
+				table.insert(lines, line)
+			end
+
+			return table.concat(lines, "\n")
+		end
+		local diagnostic_virtual_lines = { format = format_diagnostic_virtual_line }
+		local typescript_servers = { "auto", "tsgo", "ts_ls" }
 		local typescript_server_set = { tsgo = true, ts_ls = true }
 		local typescript_filetypes = {
 			javascript = true,
@@ -22,10 +61,71 @@ return {
 			tsgo = vim.lsp.config.tsgo.root_dir,
 			ts_ls = vim.lsp.config.ts_ls.root_dir,
 		}
+		local typescript_executables = {}
 		local typescript_preferences
 
 		local function canonical_path(path)
 			return path and vim.fs.normalize(vim.uv.fs_realpath(path) or path) or nil
+		end
+
+		local function project_uses_tsgo(root)
+			local package_file = canonical_path(root) and root .. "/package.json"
+			if not package_file then
+				return false
+			end
+
+			local ok, lines = pcall(vim.fn.readfile, package_file)
+			if not ok then
+				return false
+			end
+
+			local decoded, package = pcall(vim.json.decode, table.concat(lines, "\n"))
+			if not decoded or type(package) ~= "table" then
+				return false
+			end
+
+			local dependencies = package.dependencies or {}
+			local dev_dependencies = package.devDependencies or {}
+			return dependencies["@effect/tsgo"] ~= nil
+				or dev_dependencies["@effect/tsgo"] ~= nil
+				or dependencies["@typescript/native-preview"] ~= nil
+				or dev_dependencies["@typescript/native-preview"] ~= nil
+		end
+
+		local function resolve_tsgo_executable(root)
+			root = canonical_path(root)
+			if not root then
+				return "tsgo"
+			end
+			if typescript_executables[root] then
+				return typescript_executables[root]
+			end
+
+			local local_tsgo = vim.fs.joinpath(root, "node_modules", ".bin", "tsgo")
+			local executable = vim.fn.executable(local_tsgo) == 1 and local_tsgo or "tsgo"
+			local effect_tsgo = vim.fs.joinpath(root, "node_modules", ".bin", "effect-tsgo")
+			if vim.fn.executable(effect_tsgo) == 1 and vim.fn.executable("node") == 1 then
+				local script = table.concat({
+					"import getExePath from '@effect/tsgo/lib/getExePath';",
+					"console.log(getExePath());",
+				}, " ")
+				local result = vim.system(
+					{ "node", "--input-type=module", "--eval", script },
+					{ text = true, cwd = root }
+				)
+					:wait()
+				local effect_executable = vim.trim(result.stdout or "")
+				if result.code == 0 and vim.fn.executable(effect_executable) == 1 then
+					executable = effect_executable
+				end
+			end
+
+			typescript_executables[root] = executable
+			return executable
+		end
+
+		local function detected_typescript_server(root)
+			return project_uses_tsgo(root) and "tsgo" or "ts_ls"
 		end
 
 		local function load_typescript_preferences()
@@ -52,7 +152,7 @@ return {
 		end
 
 		local function typescript_server_for(root)
-			return load_typescript_preferences()[canonical_path(root)] or "tsgo"
+			return load_typescript_preferences()[canonical_path(root)] or detected_typescript_server(root)
 		end
 
 		local function save_typescript_preferences()
@@ -107,20 +207,28 @@ return {
 			if not root then
 				return
 			end
-			if not typescript_server_set[server] then
+			if server ~= "auto" and not typescript_server_set[server] then
 				vim.notify("LSP TypeScript inconnu : " .. tostring(server), vim.log.levels.ERROR)
 				return
 			end
 
 			local current = typescript_server_for(root)
-			if current == server then
+			local preferences = load_typescript_preferences()
+			local previous_preference = preferences[root]
+			if server == "auto" then
+				preferences[root] = nil
+				server = detected_typescript_server(root)
+			else
+				preferences[root] = server
+			end
+
+			if current == server and previous_preference == preferences[root] then
 				vim.notify(("TypeScript utilise déjà %s pour %s"):format(server, root), vim.log.levels.INFO)
 				return
 			end
 
-			load_typescript_preferences()[root] = server
 			if not save_typescript_preferences() then
-				load_typescript_preferences()[root] = current
+				preferences[root] = previous_preference
 				return
 			end
 
@@ -150,9 +258,19 @@ return {
 			vim.ui.select(typescript_servers, {
 				prompt = "LSP TypeScript pour " .. vim.fn.fnamemodify(root, ":~"),
 				format_item = function(server)
-					local description = server == "tsgo" and "natif, rapide, défaut"
-						or "historique, basé sur tsserver"
-					local selected = server == current and "  ✓ actuel" or ""
+					local description
+					if server == "auto" then
+						description = "détection du projet (" .. detected_typescript_server(root) .. ")"
+					elseif server == "tsgo" then
+						description = "natif TypeScript 7"
+					else
+						description = "TypeScript classique, basé sur tsserver"
+					end
+					local selected = (
+						server == current or (server == "auto" and not load_typescript_preferences()[root])
+					)
+							and "  ✓ actuel"
+						or ""
 					return ("%s — %s%s"):format(server, description, selected)
 				end,
 			}, function(server)
@@ -217,8 +335,8 @@ return {
 			severity_sort = true,
 			underline = true,
 			update_in_insert = false,
-			virtual_text = { spacing = 3, prefix = "●", source = "if_many" },
-			virtual_lines = false,
+			virtual_text = false,
+			virtual_lines = diagnostic_virtual_lines,
 			float = { border = "rounded", source = true, max_width = 90 },
 			signs = {
 				text = {
@@ -244,9 +362,10 @@ return {
 				end
 
 				local opts = { buffer = event.buf, silent = true }
-				local map = function(lhs, rhs, desc, modes)
-					opts.desc = "LSP: " .. desc
-					vim.keymap.set(modes or "n", lhs, rhs, opts)
+				local map = function(lhs, rhs, desc, modes, extra_opts)
+					local map_opts = vim.tbl_extend("force", opts, extra_opts or {})
+					map_opts.desc = "LSP: " .. desc
+					vim.keymap.set(modes or "n", lhs, rhs, map_opts)
 				end
 
 				map("gd", vim.lsp.buf.definition, "Définition")
@@ -256,7 +375,9 @@ return {
 				map("gr", vim.lsp.buf.references, "Références")
 				map("K", vim.lsp.buf.hover, "Documentation")
 				map("<leader>ca", vim.lsp.buf.code_action, "Action de code", { "n", "v" })
-				map("<leader>cr", vim.lsp.buf.rename, "Renommer")
+				map("<leader>cr", function()
+					return ":IncRename " .. vim.fn.expand("<cword>")
+				end, "Renommer avec aperçu", "n", { expr = true, silent = false })
 				map("<C-k>", vim.lsp.buf.signature_help, "Signature", "i")
 				map("<leader>co", function()
 					vim.lsp.buf.code_action({
@@ -266,6 +387,13 @@ return {
 				end, "Organiser les imports")
 				map("<leader>cd", vim.diagnostic.open_float, "Diagnostic de la ligne")
 				map("<leader>cR", "<cmd>lsp restart<cr>", "Redémarrer le serveur")
+				map("<leader>uv", function()
+					local enabled = vim.diagnostic.config().virtual_lines ~= false
+					vim.diagnostic.config({
+						virtual_lines = enabled and false or diagnostic_virtual_lines,
+						virtual_text = enabled and diagnostic_virtual_text or false,
+					})
+				end, "Afficher/masquer les diagnostics multilignes")
 
 				if client and client:supports_method("textDocument/inlayHint") then
 					vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
@@ -292,6 +420,11 @@ return {
 
 		vim.lsp.config("tsgo", {
 			root_dir = selected_typescript_root_dir("tsgo"),
+			cmd = function(dispatchers, config)
+				local root = canonical_path((config or {}).root_dir)
+				local executable = resolve_tsgo_executable(root)
+				return vim.lsp.rpc.start({ executable, "--lsp", "--stdio" }, dispatchers)
+			end,
 			settings = {
 				typescript = {
 					inlayHints = {
@@ -307,6 +440,32 @@ return {
 		})
 		vim.lsp.config("ts_ls", {
 			root_dir = selected_typescript_root_dir("ts_ls"),
+			settings = {
+				typescript = {
+					inlayHints = {
+						includeInlayParameterNameHints = "literals",
+						includeInlayParameterNameHintsWhenArgumentMatchesName = false,
+						includeInlayFunctionParameterTypeHints = true,
+						includeInlayVariableTypeHints = false,
+						includeInlayPropertyDeclarationTypeHints = true,
+						includeInlayFunctionLikeReturnTypeHints = true,
+						includeInlayEnumMemberValueHints = true,
+					},
+					updateImportsOnFileMove = { enabled = "always" },
+				},
+				javascript = {
+					inlayHints = {
+						includeInlayParameterNameHints = "literals",
+						includeInlayParameterNameHintsWhenArgumentMatchesName = false,
+						includeInlayFunctionParameterTypeHints = true,
+						includeInlayVariableTypeHints = false,
+						includeInlayPropertyDeclarationTypeHints = true,
+						includeInlayFunctionLikeReturnTypeHints = true,
+						includeInlayEnumMemberValueHints = true,
+					},
+					updateImportsOnFileMove = { enabled = "always" },
+				},
+			},
 		})
 
 		vim.api.nvim_create_user_command("TypeScriptLsp", function(command)
@@ -413,6 +572,10 @@ return {
 			settings = { json = { schemas = require("schemastore").json.schemas(), validate = { enable = true } } },
 		})
 		vim.lsp.config("yamlls", {
+			root_dir = function(bufnr, on_dir)
+				local filename = vim.api.nvim_buf_get_name(bufnr)
+				on_dir(vim.fs.root(filename, ".git") or vim.fs.dirname(filename))
+			end,
 			settings = {
 				yaml = {
 					schemaStore = { enable = false, url = "" },
@@ -420,11 +583,20 @@ return {
 				},
 			},
 		})
+		vim.lsp.config("docker_language_server", {
+			initializationOptions = { telemetry = "off" },
+		})
 		vim.lsp.config("rust_analyzer", {
 			settings = { ["rust-analyzer"] = { check = { command = "clippy", extraArgs = { "--no-deps" } } } },
 		})
 		vim.lsp.config("gopls", {
 			settings = { gopls = { staticcheck = true, completeUnimported = true, usePlaceholders = true } },
+		})
+		vim.lsp.config("ruff", {
+			on_attach = function(client)
+				-- Pyright reste la source de documentation et de typage ; Ruff gère le lint.
+				client.server_capabilities.hoverProvider = false
+			end,
 		})
 
 		vim.lsp.enable({
@@ -441,6 +613,7 @@ return {
 			"tailwindcss",
 			"jsonls",
 			"yamlls",
+			"docker_language_server",
 			"marksman",
 			"pyright",
 			"ruff",

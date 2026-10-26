@@ -1,0 +1,89 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/master/doc/json_schema.json",
+  "logo": {
+    "type": "file",
+    "source": "/home/Ugzher/.config/theme/fastfetch-logo.txt",
+    "color": {
+      "1": "#${THEME_ACCENT}",
+      "2": "#${THEME_FG_DIM}"
+    },
+    "padding": {
+      "top": 0,
+      "left": 1,
+      "right": 3
+    },
+    "position": "left"
+  },
+  "display": {
+    "separator": "  ➜  ",
+    "color": {
+      "keys": "#${THEME_CYAN}",
+      "title": "#${THEME_BRIGHT}",
+      "output": "#${THEME_FG}",
+      "separator": "#${THEME_FG_DIM}"
+    },
+    "key": {
+      "type": "icon",
+      "width": 2
+    }
+  },
+  "modules": [
+    {
+      "type": "title",
+      "format": "{##${THEME_BRIGHT}}ugzher{##${THEME_FG_DIM}}@{##${THEME_CYAN}}{host-name}{#}",
+      "color": {
+        "user": "#${THEME_BRIGHT}",
+        "at": "#${THEME_FG_DIM}",
+        "host": "#${THEME_CYAN}"
+      }
+    },
+    {
+      "type": "separator",
+      "string": "─",
+      "outputColor": "#${THEME_MUTED}"
+    },
+    {
+      "type": "os",
+      "keyIcon": ""
+    },
+    {
+      "type": "kernel",
+      "keyIcon": ""
+    },
+    {
+      "type": "packages",
+      "keyIcon": "󰏖"
+    },
+    {
+      "type": "shell",
+      "keyIcon": ""
+    },
+    {
+      "type": "wm",
+      "keyIcon": ""
+    },
+    {
+      "type": "terminal",
+      "keyIcon": ""
+    },
+    {
+      "type": "cpu",
+      "keyIcon": ""
+    },
+    {
+      "type": "gpu",
+      "keyIcon": "󰾲"
+    },
+    {
+      "type": "disk",
+      "keyIcon": "",
+      "folders": "/"
+    },
+    {
+      "type": "uptime",
+      "keyIcon": "󰅐"
+    },
+    "break",
+    "colors"
+  ]
+}

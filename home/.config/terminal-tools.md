@@ -14,7 +14,6 @@ configuration et les commandes les plus utiles au quotidien.
 | `tldr` | Aide par exemples concrets | Complète `man` et `--help` |
 | `yazi` | Gestionnaire de fichiers dans le terminal | Complète `cd`, `ls` et l'explorateur graphique |
 | `fzf-tab` | Complétion Zsh interactive | Remplace le menu de complétion classique |
-| `zellij` | Sessions, onglets et panneaux | Alternative moderne à tmux |
 | `posting` | Client d'API HTTP interactif | Complète `xh` pour les scénarios visuels |
 | `harlequin` | IDE SQL dans le terminal | Complète les clients SQL en ligne de commande |
 | `lnav` | Lecture et analyse de journaux | Remplace `less` pour les logs structurés |
@@ -424,103 +423,6 @@ conflits avec autosuggestions, la coloration syntaxique et Atuin.
 Configuration : `~/.zshrc`  
 Installation : `~/.local/share/zsh/plugins/fzf-tab/`
 
-## Zellij
-
-Documentation officielle : [zellij.dev/documentation](https://zellij.dev/documentation/)
-
-### Utilité
-
-Zellij conserve des sessions de terminal et permet de créer des panneaux et
-des onglets. Il est installé comme alternative à tmux et ne démarre pas
-automatiquement.
-
-```bash
-# Rouvrir automatiquement la session la plus récente
-zellij
-
-# Même comportement avec le raccourci
-zj
-
-# Nouvelle session nommée
-zellij --session backend
-
-# Lister puis rejoindre les sessions
-zellij list-sessions
-zellij attach backend
-
-# Forcer une nouvelle session même si d'anciennes existent
-zellij --session nouveau-projet
-```
-
-Sans argument, la fonction Zsh `zellij` sélectionne la première entrée de
-`zellij list-sessions --reverse` : elle rejoint une session encore active ou
-ressuscite la dernière session arrêtée. Lorsqu'aucune sauvegarde n'existe,
-Zellij crée normalement une nouvelle session. Les sous-commandes et options
-explicites (`zellij list-sessions`, `zellij attach backend`, etc.) ne sont pas
-modifiées.
-
-Lors d'une résurrection, Zellij restaure les onglets, panneaux et répertoires.
-Par sécurité, une commande précédemment active demande `Entrée` avant d'être
-relancée ; le wrapper n'utilise volontairement pas `--force-run-commands`.
-
-Les commandes commencent généralement par `Ctrl+P` pour les panneaux,
-`Ctrl+T` pour les onglets et `Ctrl+S` pour le défilement. La barre compacte
-affiche les raccourcis disponibles. `Ctrl+O`, puis `d`, détache la session.
-
-### Onglets
-
-Des raccourcis directs sont ajoutés pour les actions fréquentes :
-
-| Action | Raccourci direct | Raccourci Zellij natif |
-|---|---|---|
-| Nouvel onglet | `Alt+T` | `Ctrl+T`, puis `n` |
-| Renommer | `Alt+R`, saisir le nom, `Entrée` | `Ctrl+T`, puis `r` |
-| Onglet précédent / suivant | `Alt+,` / `Alt+.` | `Ctrl+T`, puis `h` / `l` |
-| Aller à l'onglet 1 à 9 | `Alt+1`…`Alt+9` | `Ctrl+T`, puis `1`…`9` |
-| Fermer l'onglet | — | `Ctrl+T`, puis `x` |
-| Rechercher un onglet par son nom | `Alt+S` | — |
-| Afficher l'aide des raccourcis | `Alt+B` | — |
-
-Les raccourcis directs fonctionnent en mode `NORMAL`. Les raccourcis natifs
-restent disponibles et la barre inférieure rappelle les touches du mode actif.
-
-### Interface et plugins
-
-Les cadres de panneaux sont désactivés : plus de bord supérieur, inférieur ou
-latéral autour d'un panneau unique. Seule une barre `zjstatus` d'une ligne
-reste visible en bas. Elle reprend la palette Obsidian Rose et affiche le mode,
-la session, les onglets, la branche Git et l'heure.
-
-La sélection [Awesome Zellij](https://github.com/zellij-org/awesome-zellij)
-contient beaucoup de plugins communautaires. Ceux installés ici sont :
-
-| Plugin | Intérêt | Utilisation |
-|---|---|---|
-| [zjstatus](https://github.com/dj95/zjstatus) | Barre d'état totalement personnalisable | Chargé automatiquement par le layout |
-| [room](https://github.com/rvcas/room) | Recherche et changement d'onglet rapide | `Alt+S`, taper, puis `Entrée` |
-| [zellij-forgot](https://github.com/karimould/zellij-forgot) | Popup listant les raccourcis actifs | `Alt+B` |
-| [neolij](https://github.com/y2w8/neolij.nvim) | Navigation transparente entre Neovim et Zellij | `Ctrl+H/J/K/L` dans Neovim |
-
-Dans Room, `Tab` ou les flèches changent la sélection, un chiffre saute
-directement à l'onglet correspondant, et `Échap` ferme la fenêtre. Au premier
-lancement de chaque plugin Zellij, sélectionner sa fenêtre et accepter les
-permissions avec `y`.
-
-Neolij ajoute aussi ces actions depuis Neovim :
-
-| Action | Raccourci Neovim |
-|---|---|
-| Nouvel onglet Zellij | `<leader>zt` |
-| Renommer l'onglet | `<leader>zr` |
-| Déplacer l'onglet à gauche / droite | `<leader>z,` / `<leader>z.` |
-
-La configuration active utilise Zsh, le thème et le layout `obsidian-rose`.
-Zellij possède sa propre complétion Zsh.
-
-Configurations : `~/.config/zellij/config.kdl`,
-`~/.config/zellij/layouts/obsidian-rose.kdl` et
-`~/.config/nvim/lua/ugzher/plugins/neolij.lua`
-
 ## Posting
 
 Documentation officielle : [posting.sh/guide](https://posting.sh/guide/)
@@ -831,7 +733,6 @@ rg --version
 tldr --version
 yazi --version
 ya --version
-zellij --version
 posting --help
 harlequin --version
 lnav -V
@@ -849,7 +750,7 @@ exec zsh
 
 Les binaires sont installés dans les emplacements utilisateur suivants :
 
-- `delta`, `dust`, `tldr`, `yazi`, `ya`, `zellij` et `lnav` :
+- `delta`, `dust`, `tldr`, `yazi`, `ya` et `lnav` :
   `~/.local/bin/` ;
 - `xh` : `~/.cargo/bin/` ;
 - `posting` et `harlequin` : environnements isolés gérés par `uv`, avec leurs

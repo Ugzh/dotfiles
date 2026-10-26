@@ -2,51 +2,40 @@
 
 Press `Super+T` to open a Fuzzel selector for the desktop palettes.
 
-Press `Super+Shift+W` to open the visual theme-and-wallpaper selector. To replace
-the wallpaper associated with the active palette, run `wallpaper-menu`; each
-selection is stored in `wallpapers/<theme-name>.env`.
+Press `Super+Shift+W` to open DMS wallpaper settings. `Mod+Shift+Return`
+opens the DMS power menu, including its lock action. DMS owns the active
+wallpaper and lock screen; `swww` is not required.
 
-## Associate a wallpaper with a theme
+## Add a new theme
 
-The easiest method is:
+Fastfetch uses a fixed custom ASCII logo shared by every palette:
 
-1. Apply the theme with `Super+T` or `apply-theme <theme-name>`.
-2. Run `wallpaper-menu` and choose an image.
-3. Switch away from the theme and back to it to verify that the association is
-   restored.
-
-The selector writes a per-theme override to
-`~/.config/theme/wallpapers/<theme-name>.env`. It has the following format:
-
-```sh
-THEME_WALLPAPER=/home/Ugzher/Pictures/Wallpapers/example.jpg
-THEME_WALLPAPER_MODE=fill
+```text
+fastfetch-logo.txt
 ```
 
-Supported static modes are `fill`, `fit`, `stretch`, `center` and `tile`.
-Use an absolute path and make sure the file exists. `apply-theme` and
-`apply-wallpaper` load this override after the preset, so it takes precedence
-over `THEME_WALLPAPER` in `presets/<theme-name>.env`.
+The two-color logo uses Fastfetch's `$1` and `$2` placeholders. `apply-theme`
+renders its path and the current palette into `~/.config/fastfetch/config.jsonc`.
 
-To set the built-in default of a theme, edit the same two variables in its
-`presets/<theme-name>.env`. The per-theme override still takes precedence; remove
-`wallpapers/<theme-name>.env` if you want to fall back to the preset default.
-
-Apply or troubleshoot the wallpaper directly with:
+After adding the preset and sprite, verify them with:
 
 ```sh
 apply-theme <theme-name>
-/home/Ugzher/.local/bin/apply-wallpaper
+fastfetch
 ```
 
-`apply-wallpaper` uses `swaybg` for static images and `mpvpaper` for animated
-images or videos.
+## Wallpaper management
 
-The active mapping also generates
-`~/.local/share/theme-sync/login-background.jpg`. Swaylock and gtklock use this
-still image, and `theme-greeter-background.path` mirrors it to greetd for the
-next login or reboot. Animated wallpapers use a captured frame on lock and
-login screens.
+Choose the current wallpaper with `Super+Shift+W`, or set it directly with
+`dms ipc call wallpaper set /absolute/path/to/image.jpg`. The DMS lock screen
+uses the wallpaper known to DMS. Ayu presets do not force a wallpaper, so
+switching between them leaves the selected image in place.
+
+Legacy presets may still define `THEME_WALLPAPER`, and per-theme files in
+`wallpapers/<theme-name>.env` can override it. `apply-theme` sends those images
+to DMS when such a mapping exists. The separate `apply-wallpaper` script is no
+longer started by Niri. The greeter still uses the still image generated in
+`~/.local/share/theme-sync/login-background.jpg` when a preset specifies one.
 
 - `obsidian-rose`: plum-black surfaces, fuchsia, lavender and acid green.
 - `seoul256-dark`: soft charcoal surfaces, muted blue, cyan, green, rose and
@@ -57,8 +46,8 @@ login screens.
   and cool blue-green data accents from the official Melange Dark palette.
 
 The initial per-theme mappings use `gruvbox_dark.jpg` for Seoul256 Dark and
-Melange Dark, and `catppuccin.png` for Cool Panda. Apply a theme, then run `wallpaper-menu`
-to replace and save its wallpaper independently.
+Melange Dark, and `catppuccin.png` for Cool Panda. DMS can replace the current
+wallpaper at any time with `Super+Shift+W`.
 
 Palette references:
 

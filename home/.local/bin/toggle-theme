@@ -17,6 +17,7 @@ case "${THEME_MODE:-obsidian-rose}" in
   elysia-dark) exec /home/Ugzher/.local/bin/apply-theme nord ;;
   nord) exec /home/Ugzher/.local/bin/apply-theme seoul256-dark ;;
   seoul256-dark) exec /home/Ugzher/.local/bin/apply-theme cool-panda ;;
-  cool-panda) exec /home/Ugzher/.local/bin/apply-theme obsidian-rose ;;
+  cool-panda) exec /home/Ugzher/.local/bin/apply-theme platinum-night ;;
+  platinum-night) exec /home/Ugzher/.local/bin/apply-theme obsidian-rose ;;
   *) exec /home/Ugzher/.local/bin/apply-theme obsidian-rose ;;
 esac

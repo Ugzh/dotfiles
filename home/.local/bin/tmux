@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# Preserve the normal tmux CLI whenever a subcommand or option is provided.
+if (( $# > 0 )); then
+  exec /usr/bin/tmux "$@"
+fi
+
+if [[ -n "${TMUX:-}" ]]; then
+  printf '%s\n' 'Already inside tmux'
+  exit 0
+fi
+
+# With no arguments, attach to the most recently used session. Create a new
+# session only when no tmux server/session exists yet.
+if /usr/bin/tmux list-sessions >/dev/null 2>&1; then
+  exec /usr/bin/tmux attach-session
+else
+  exec /usr/bin/tmux new-session
+fi

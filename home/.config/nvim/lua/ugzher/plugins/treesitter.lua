@@ -37,7 +37,9 @@ return {
 	build = ":TSUpdate",
 	config = function()
 		local treesitter = require("nvim-treesitter")
-		treesitter.install(languages)
+		if #vim.api.nvim_list_uis() > 0 then
+			treesitter.install(languages)
+		end
 
 		vim.api.nvim_create_autocmd("FileType", {
 			group = vim.api.nvim_create_augroup("ugzher-treesitter", { clear = true }),

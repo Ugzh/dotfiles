@@ -4,7 +4,7 @@
     font-size: 12px;
     font-weight: 900;
     border: none;
-    border-radius: 0px;
+    border-radius: 8px;
     min-height: 0px;
     margin: 0rem 0rem 0rem 0rem;
 }
@@ -18,7 +18,7 @@ window#waybar  {
 #waybar > box {
   margin: 2px 17px 5px 8px;
   padding: 2px 0px 2px 0px;
-  border-radius: 5px;
+  border-radius: 14px;
   border: 2px solid @border;
   background-color: @bg;
       box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9),
@@ -64,12 +64,12 @@ margin-right: 5px;
   opacity: 1;
   font-weight: 900;
   font-size: 12px;
-  border-radius: 2px;
+  border-radius: 9px;
 }
 
 #workspaces button.active {
   color: @bg;
-  border-radius: 2px;
+  border-radius: 9px;
   background-color: @accent;
   padding: 0px 9px;
   margin: 0px 1px;
@@ -86,7 +86,7 @@ margin-right: 5px;
 
 #workspaces button.empty {
   opacity: 1;
-  border-radius: 2px;
+  border-radius: 9px;
   padding: 0px 9px;
   margin: 0px 1px;
   color: alpha(@fg, 0.25);
@@ -94,7 +94,7 @@ margin-right: 5px;
 
 #workspaces button.empty.active {
   opacity: 1;
-  border-radius: 2px;
+  border-radius: 9px;
   padding: 0px 9px;
   margin: 0px 1px;
   background-color: alpha(@fg, 0.5);
@@ -192,7 +192,7 @@ margin-right: 5px;
 #tray {
   padding: 2px 4px 2px 4px;
   margin: 1px 2px;
-  border-radius: 3px;
+  border-radius: 8px;
   background-color: @tray-bg;
   color: @tray-fg;
 }
@@ -318,7 +318,7 @@ tooltip label {
 #custom-cava {
 margin: 0px 6px 0px 0px;
 padding: 0px 9px;
-border-radius: 2px;
+border-radius: 9px;
 background-color: @accent;
 opacity: 1;
 color: @bg;
@@ -341,7 +341,7 @@ color: @bg;
 #mpris {
 margin: 0px 6px 0px 8px;
 padding: 0px 9px;
-border-radius: 2px;
+border-radius: 9px;
 background-color: @accent;
 opacity: 1;
 color: @bg;

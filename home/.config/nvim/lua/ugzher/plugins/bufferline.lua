@@ -6,8 +6,8 @@ return {
 	version = "*",
 	opts = {
 		options = {
-			-- Afficher les vrais tabpages Neovim créés avec <leader>to / Ctrl-t.
-			mode = "tabs",
+			-- Les buffers représentent les fichiers ; les tabpages restent des espaces de travail.
+			mode = "buffers",
 			separator_style = "slant",
 			diagnostics = "nvim_lsp",
 			always_show_bufferline = true,
@@ -116,9 +116,15 @@ return {
 		},
 	},
 	keys = {
-		{ "<S-h>", "<cmd>BufferLineCyclePrev<cr>", desc = "Onglet précédent" },
-		{ "<S-l>", "<cmd>BufferLineCycleNext<cr>", desc = "Onglet suivant" },
-		{ "<leader>bd", "<cmd>bdelete<cr>", desc = "Fermer le buffer" },
+		{ "<S-h>", "<cmd>BufferLineCyclePrev<cr>", desc = "Buffer précédent" },
+		{ "<S-l>", "<cmd>BufferLineCycleNext<cr>", desc = "Buffer suivant" },
+		{
+			"<leader>bd",
+			function()
+				require("snacks.bufdelete").delete()
+			end,
+			desc = "Fermer le buffer",
+		},
 		{ "<leader>bp", "<cmd>BufferLineTogglePin<cr>", desc = "Épingler le buffer" },
 	},
 }

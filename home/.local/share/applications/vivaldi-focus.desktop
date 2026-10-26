@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Vivaldi (focus existing window)
+GenericName=Web Browser
+Exec=/home/Ugzher/.local/bin/open-url-in-vivaldi %U
+Terminal=false
+Type=Application
+MimeType=text/html;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+Categories=Network;WebBrowser;
+NoDisplay=true

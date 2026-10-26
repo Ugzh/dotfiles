@@ -20,7 +20,7 @@ require("lazy").setup({
 		{ import = "ugzher.plugins.lsp" },
 	},
 	checker = {
-		enabled = true,
+		enabled = #vim.api.nvim_list_uis() > 0,
 		notify = false,
 	},
 	change_detection = {

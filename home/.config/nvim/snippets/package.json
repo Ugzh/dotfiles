@@ -1,0 +1,10 @@
+{
+  "contributes": {
+    "snippets": [
+      {
+        "language": "yaml.docker-compose",
+        "path": "./docker-compose.json"
+      }
+    ]
+  }
+}

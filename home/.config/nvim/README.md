@@ -1,9 +1,12 @@
 # Configuration Neovim
 
+La liste complète des raccourcis personnalisés se trouve dans
+[`CHEATSHEET.md`](CHEATSHEET.md).
+
 Configuration basée sur Neovim 0.12, Lazy, Snacks, Blink, Mason, le LSP natif,
 Treesitter et Conform. Elle est principalement orientée TypeScript et
 Kotlin/Gradle, avec une prise en charge de Lua, Angular, HTML/CSS, Python, Go,
-Rust, C/C++, JSON, YAML et Markdown.
+Rust, C/C++, JSON, YAML, Docker/Compose et Markdown.
 
 ## Repères
 
@@ -26,8 +29,20 @@ Dans les tableaux ci-dessous, `<leader>` désigne donc `Espace`, `<C-x>` désign
 | `<leader>fh` | Rechercher dans l'aide |
 | `<leader>fk` | Rechercher un raccourci |
 | `<leader>fd` | Rechercher dans tous les diagnostics |
-| `<leader>ef` | Ouvrir ou fermer l'explorateur de fichiers |
+| `<leader>fR` | Rechercher et remplacer dans tout le projet |
+| `<leader>ef` | Ouvrir ou fermer Mini Files autour du fichier courant |
+| `<leader>eF` | Ouvrir l'explorateur Snacks |
 | `<leader>fp` | Copier le chemin du fichier courant |
+| `s` | Sauter rapidement vers une position visible |
+| `<leader>;` | Choisir un symbole dans le fil d'Ariane |
+| `[;` / `];` | Début du contexte courant / contexte suivant |
+
+Mini Files affiche le dossier courant, ses parents et un aperçu dans des
+colonnes flottantes centrées. `j` et `k` choisissent une entrée, `h` revient au
+parent, `l` ouvre une entrée sans fermer l'explorateur, et `Entrée` ouvre un
+fichier puis ferme l'explorateur. Utiliser `=` pour appliquer les créations,
+renommages, déplacements ou suppressions. L'explorateur Snacks reste accessible
+avec `<leader>eF`.
 
 ## Buffers, fenêtres et onglets
 
@@ -37,6 +52,7 @@ Dans les tableaux ci-dessous, `<leader>` désigne donc `Espace`, `<C-x>` désign
 | `<leader>bd` | Fermer le buffer courant |
 | `<leader>bp` | Épingler ou désépingler le buffer |
 | `<leader>sv` / `<leader>sh` | Diviser verticalement / horizontalement |
+| `<C-h>` / `<C-j>` / `<C-k>` / `<C-l>` | Naviguer entre les fenêtres |
 | `<leader>se` | Égaliser la taille des fenêtres |
 | `<leader>sx` | Fermer la fenêtre courante |
 | `<leader>to` / `<leader>tx` | Créer / fermer un onglet |
@@ -54,13 +70,14 @@ Ces raccourcis sont disponibles lorsqu'un serveur LSP est attaché au buffer.
 | `gr` | Afficher les références |
 | `K` | Afficher la documentation du symbole |
 | `<leader>ca` | Exécuter une action de code |
-| `<leader>cr` | Renommer le symbole |
+| `<leader>cr` | Renommer le symbole avec aperçu en direct |
 | `<C-k>` en mode insertion | Afficher la signature de la fonction |
 | `<leader>co` | Organiser les imports TypeScript, Kotlin, etc. |
 | `<leader>cd` ou `gl` | Afficher le diagnostic de la ligne |
 | `<leader>cR` | Redémarrer les serveurs LSP |
 | `<leader>cf` | Formater le fichier ou la sélection |
 | `<leader>uh` | Afficher ou masquer les inlay hints |
+| `<leader>uv` | Afficher ou masquer les diagnostics multilignes |
 
 ## Diagnostics et listes
 
@@ -73,6 +90,21 @@ Ces raccourcis sont disponibles lorsqu'un serveur LSP est attaché au buffer.
 | `<leader>cl` | Ouvrir les définitions et références LSP dans Trouble |
 | `<leader>xL` | Ouvrir la location list dans Trouble |
 | `<leader>xQ` | Ouvrir la quickfix list dans Trouble |
+| `<leader>xt` | Afficher les TODO du projet dans Trouble |
+| `[t` / `]t` | TODO précédent / suivant |
+
+## Sessions
+
+Les sessions sont stockées hors du dépôt et identifiées par le chemin complet
+du projet. Une session restaurée est ensuite sauvegardée automatiquement à la
+fermeture de Neovim.
+
+| Raccourci | Action |
+| --- | --- |
+| `<leader>qs` | Sauvegarder la session du projet courant |
+| `<leader>qr` | Restaurer la session du projet courant |
+| `<leader>ql` | Choisir une session enregistrée |
+| `<leader>qd` | Supprimer une session enregistrée |
 
 ## Kotlin et Gradle
 
@@ -95,11 +127,13 @@ meilleurs résultats, lancer Neovim depuis un projet contenant `gradlew`,
 
 ## TypeScript et scripts Node
 
-`tsgo` fournit par défaut les fonctions LSP dans l'éditeur. `:TypeScriptLsp`
-ou `<leader>cT` permet de choisir `tsgo` ou l'ancien `ts_ls` pour la racine du
-projet courant. Le choix persiste localement dans l'état Neovim et ne modifie
-aucun fichier du dépôt. La validation complète reste séparée : elle utilise le
-script `typecheck` du package lorsqu'il existe, sinon le `tsc --noEmit` installé
+Le LSP TypeScript est détecté par projet : `tsgo` est choisi lorsqu'un
+`package.json` déclare `@typescript/native-preview`, sinon Neovim utilise
+`ts_ls` (le serveur TypeScript classique). `:TypeScriptLsp` ou `<leader>cT`
+permet de forcer un serveur, ou de choisir `auto` pour revenir à cette
+détection. Le choix persiste localement dans l'état Neovim et ne modifie aucun
+fichier du dépôt. La validation complète reste séparée : elle utilise le script
+`typecheck` du package lorsqu'il existe, sinon le `tsc --noEmit` installé
 localement dans `node_modules`.
 
 Lorsqu'un projet déclare Oxlint dans son `package.json` ou possède une
@@ -116,7 +150,7 @@ du champ `packageManager` : npm, pnpm, Yarn et Bun sont pris en charge.
 | Raccourci | Action |
 | --- | --- |
 | `<leader>rs` | Choisir et lancer un script de `package.json` |
-| `<leader>cT` | Choisir `tsgo` ou `ts_ls` pour le projet courant |
+| `<leader>cT` | Détecter ou choisir `tsgo` / `ts_ls` pour le projet courant |
 | `<leader>rc` | Valider le package avec `typecheck` ou `tsc --noEmit` |
 | `<leader>rt` | Lancer le script `test` du package |
 | `<leader>rf` | Tester uniquement le fichier courant |
@@ -130,6 +164,9 @@ LSP en dernier recours.
 ## Complétion
 
 Blink affiche les propositions LSP, chemins, buffers et snippets.
+Les fichiers `Dockerfile`, `compose.yaml`, `compose.yml` et
+`docker-compose*.yml/yaml` bénéficient aussi de la complétion Docker : services,
+images, réseaux, volumes et valeurs comme `restart: on-failure`.
 
 | Raccourci | Action |
 | --- | --- |
@@ -150,15 +187,25 @@ Blink affiche les propositions LSP, chemins, buffers et snippets.
 | `<` / `>` en mode visuel | Indenter sans perdre la sélection |
 | `<leader>d` | Supprimer sans remplacer le registre de copie |
 | `x` | Supprimer un caractère sans remplacer le registre de copie |
-| `gsa` / `gsd` / `gsr` | Ajouter / supprimer / remplacer une paire entourante |
+| `ys` / `ds` / `cs` | Ajouter / supprimer / remplacer une paire entourante |
 | `zR` / `zM` | Ouvrir / fermer tous les replis |
 | `<leader>uu` | Afficher l'historique des modifications |
 | `<leader>tt` | Ouvrir ou fermer le terminal |
 | `<leader>gg` | Ouvrir LazyGit |
+| `[h` / `]h` | Changement Git précédent / suivant |
+| `<leader>gp` | Prévisualiser le changement Git courant |
+| `<leader>gs` / `<leader>gr` | Indexer / annuler le changement courant |
+| `<leader>gb` | Afficher ou masquer le blame de la ligne |
+| `<leader>go` | Ouvrir la ligne courante sur le dépôt distant |
+| `<leader>gv` | Examiner les modifications Git dans Diffview |
+| `<leader>gV` | Afficher l'historique Git du fichier courant |
 | `<leader>ce` | Entourer avec une abréviation Emmet |
 | `<leader>pi` | Coller une image depuis le presse-papiers |
 | `<leader>nh` | Afficher l'historique des notifications |
 | `<leader>un` | Masquer les notifications |
+| `<leader>.` | Ouvrir ou fermer le bloc-notes du projet et de la branche |
+| `<leader>us` | Activer ou désactiver le correcteur orthographique |
+| `<leader>uw` | Activer ou désactiver le retour à la ligne |
 | `<C-c>` en mode normal | Effacer le surlignage de la recherche |
 
 ## Commandes utiles
@@ -168,7 +215,7 @@ Blink affiche les propositions LSP, chemins, buffers et snippets.
 | `:Lazy` | Gérer et mettre à jour les plugins |
 | `:Mason` | Gérer les serveurs LSP et outils externes |
 | `:LspInfo` | Afficher les serveurs configurés et attachés |
-| `:TypeScriptLsp [tsgo\|ts_ls]` | Choisir le LSP TypeScript du projet courant |
+| `:TypeScriptLsp [auto\|tsgo\|ts_ls]` | Détecter ou choisir le LSP TypeScript du projet courant |
 | `:ConformInfo` | Afficher le formateur sélectionné pour le fichier |
 | `:checkhealth` | Lancer le diagnostic général de Neovim |
 | `:messages` | Afficher les derniers messages de Neovim |

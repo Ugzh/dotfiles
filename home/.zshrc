@@ -1,4 +1,7 @@
-export PATH="$HOME/.local/bin:$PATH"
+# Keep the first occurrence of each entry whenever a tool updates PATH.
+typeset -U path PATH
+
+path=("$HOME/.local/bin" $path)
 export EDITOR="nvim"
 export VISUAL="nvim"
 
@@ -21,16 +24,29 @@ fi
 export PNPM_HOME="$HOME/.local/share/pnpm"
 
 if [[ -d "$PNPM_HOME" ]]; then
-  export PATH="$PNPM_HOME:$PATH"
+  path=("$PNPM_HOME" $path)
 fi
 
 if command -v mise >/dev/null 2>&1; then
   eval "$(mise activate zsh)"
 fi
 
-if command -v git>/dev/null 2>&1; then
+if command -v nvim>/dev/null 2>&1; then
+  alias v="nvim"
+  alias nv="nvim"
+fi
+
+if command -v git >/dev/null 2>&1; then
   alias gc="git clone"
 fi
+
+if command -v tmux>/dev/null 2>&1; then
+  alias t="tmux"
+  alias tm="tmux"
+fi
+
+
+
 
 
 HISTFILE="$HOME/.zsh_history"
@@ -43,10 +59,29 @@ setopt HIST_IGNORE_DUPS
 setopt HIST_IGNORE_ALL_DUPS
 setopt HIST_REDUCE_BLANKS
 
+# Keep invalid/empty ZLE actions silent (DMS maps the terminal bell to a sound).
+unsetopt BEEP
+
 
 fpath=("$HOME/.local/share/zsh/site-functions" $fpath)
 autoload -Uz compinit
 compinit
+
+# Complete case-insensitively, then fall back to matching anywhere in a name.
+# For example, `cd ../back<Tab>` can complete to `../oreus-backend-v1`.
+zstyle ':completion:*' matcher-list \
+  'm:{a-zA-Z}={A-Za-z}' \
+  'l:|=* r:|=*'
+
+# Fedora's default dircolors marks directories, executables and archives as
+# bold. Keep the same colors in eza and completions, using Lilex's regular
+# weight for filenames.
+if [[ -n "${LS_COLORS:-}" ]]; then
+  LS_COLORS=${LS_COLORS//01;/}
+  LS_COLORS=${LS_COLORS//;01/}
+  export LS_COLORS
+  export EZA_COLORS="$LS_COLORS"
+fi
 
 if [[ -f "$HOME/.local/share/zsh/plugins/fzf-tab/fzf-tab.plugin.zsh" ]]; then
   source "$HOME/.local/share/zsh/plugins/fzf-tab/fzf-tab.plugin.zsh"
@@ -60,8 +95,6 @@ if [[ -f "$HOME/.local/share/zsh/plugins/fzf-tab/fzf-tab.plugin.zsh" ]]; then
     --layout=reverse \
     --border \
     --preview-window=right:55%:wrap
-  # ftb-tmux-popup otherwise sizes itself only from the completion labels and
-  # leaves no usable room for the preview when directory names are short.
   zstyle ':fzf-tab:*' popup-min-size 100 14
   zstyle ':fzf-tab:complete:cd:*' fzf-preview \
     'eza -la --icons=always --color=always $realpath 2>/dev/null'
@@ -75,6 +108,11 @@ fi
 bindkey -v
 export KEYTIMEOUT=1
 
+# Zsh's vi-style backspace only removes text entered during the current insert
+# session. Use the regular widget so recalled history remains fully editable.
+bindkey -M viins '^?' backward-delete-char
+bindkey -M viins '^H' backward-delete-char
+
 
 if command -v eza >/dev/null 2>&1; then
   alias ls="eza --icons=always"
@@ -87,11 +125,11 @@ if command -v bat >/dev/null 2>&1; then
   alias cat="bat"
 fi
 
-if command -v kubectl>/dev/null 2>&1; then
+if command -v kubectl >/dev/null 2>&1; then
   alias k="kubectl"
 fi
 
-if command -v kubectx>/dev/null 2>&1; then
+if command -v kubectx >/dev/null 2>&1; then
   alias ktx="kubectx"
 fi
 
@@ -102,6 +140,10 @@ fi
 
 if command -v fx >/dev/null 2>&1; then
   eval "$(fx --comp zsh)"
+fi
+
+if command -v sesh >/dev/null 2>&1; then
+  eval "$(sesh completion zsh)"
 fi
 
 # Launch Yazi and keep its final directory when leaving with `q`.
@@ -115,26 +157,6 @@ function y() {
 
 if command -v lazygit >/dev/null 2>&1; then
   alias lg="lazygit"
-fi
-
-if command -v zellij >/dev/null 2>&1; then
-  # With no arguments, reopen the most recently used active or resurrectable
-  # session. Explicit commands and options keep Zellij's native behaviour.
-  function zellij() {
-    if (( $# == 0 )) && [[ -z "${ZELLIJ:-}" ]]; then
-      local latest_zellij_session
-      latest_zellij_session="$(command zellij list-sessions --short --no-formatting --reverse 2>/dev/null | command head -n 1)"
-
-      if [[ -n "$latest_zellij_session" && "$latest_zellij_session" != "No active zellij sessions found." ]]; then
-        command zellij attach "$latest_zellij_session"
-        return
-      fi
-    fi
-
-    command zellij "$@"
-  }
-
-  alias zj="zellij"
 fi
 
 if command -v opencode >/dev/null 2>&1; then
@@ -188,6 +210,10 @@ if [[ -s "$NVM_DIR/nvm.sh" ]]; then
   source "$NVM_DIR/nvm.sh"
 fi
 
+if [[ -s "$NVM_DIR/bash_completion" ]]; then
+  source "$NVM_DIR/bash_completion"
+fi
+
 
 export BUN_INSTALL="$HOME/.bun"
 
@@ -229,44 +255,37 @@ if [[ -f "$HOME/.local/share/zsh/plugins/zsh-history-substring-search/zsh-histor
 fi
 
 
-if [[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
-  source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+if command -v pitchfork >/dev/null 2>&1; then
+  eval "$(pitchfork activate zsh)"
 fi
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-# pnpm
-export PNPM_HOME="/home/Ugzher/.local/share/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME/bin:"*) ;;
-  *) export PATH="$PNPM_HOME/bin:$PATH" ;;
-esac
-# pnpm end
+if [[ -f "$HOME/.atuin/bin/env" ]]; then
+  source "$HOME/.atuin/bin/env"
+fi
 
-. "$HOME/.cargo/env"
-eval "$(mise activate zsh)"
-eval "$(pitchfork activate zsh)"
+if command -v atuin >/dev/null 2>&1; then
+  eval "$(atuin init zsh)"
 
+  bindkey -M viins '^R' atuin-search-viins
+  bindkey -M vicmd '^R' atuin-search-vicmd
+fi
 
-. "$HOME/.atuin/bin/env"
-
-eval "$(atuin init zsh)"
-
-# fzf also binds Ctrl-R in every Zsh keymap. Atuin replaces it in viins but
-# uses `/` in vicmd by default, so explicitly keep Ctrl-R on Atuin in both.
-bindkey -M viins '^R' atuin-search-viins
-bindkey -M vicmd '^R' atuin-search-vicmd
-
-# The generated integration defaults this to false; override it afterwards so
-# Atuin opens above the active tmux pane instead of taking over the pane.
 export ATUIN_TMUX_POPUP=true
 export ATUIN_TMUX_POPUP_WIDTH="90%"
 export ATUIN_TMUX_POPUP_HEIGHT="70%"
 
-# bun completions
-[ -s "/home/Ugzher/.bun/_bun" ] && source "/home/Ugzher/.bun/_bun"
+if [[ -d "$HOME/.spicetify" ]]; then
+  path+=("$HOME/.spicetify")
+fi
 
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
+if [[ -o interactive && -t 1 && -z ${FASTFETCH_SHOWN:-} ]] && command -v fastfetch >/dev/null 2>&1; then
+  export FASTFETCH_SHOWN=1
+  fastfetch
+fi
 
-export PATH=$PATH:/home/Ugzher/.spicetify
+export PATH="$HOME/.beacode/bin:$PATH"
+
+if [[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+  source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+  [[ -r "$HOME/.config/zsh/theme.zsh" ]] && source "$HOME/.config/zsh/theme.zsh"
+fi

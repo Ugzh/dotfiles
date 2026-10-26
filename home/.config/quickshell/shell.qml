@@ -2,6 +2,7 @@
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
@@ -25,6 +26,11 @@ Scope {
     readonly property color warning: Theme.warning
     readonly property color critical: Theme.critical
     readonly property string fontFamily: Theme.fontFamily
+    readonly property real fontScale: 1.25
+
+    function fontSize(pixelSize) {
+        return Math.round(pixelSize * fontScale);
+    }
 
     property var system: ({
         cpu: 0,
@@ -46,6 +52,12 @@ Scope {
     property var bluetooth: ({ powered: false, discovering: false, devices: [] })
     property string updatesText: ""
     property var cavaLevels: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    property bool batteryAlert15Sent: false
+    property bool batteryAlert10Sent: false
+    property bool batteryAlert5Sent: false
+    readonly property var defaultAudio: Pipewire.defaultAudioSink ? Pipewire.defaultAudioSink.audio : null
+    readonly property int audioVolume: defaultAudio ? Math.round(defaultAudio.volume * 100) : 0
+    readonly property bool audioMuted: defaultAudio ? defaultAudio.muted : false
 
     readonly property var selectedPlayer: {
         let fallback = null;
@@ -63,6 +75,74 @@ Scope {
 
     function run(command) {
         Quickshell.execDetached(command);
+    }
+
+    function checkBatteryAlert() {
+        if (!root.system.batteryPresent)
+            return;
+
+        const level = root.system.batteryCapacity;
+        const status = root.system.batteryStatus;
+        if (status === "Charging" || status === "Full") {
+            root.batteryAlert15Sent = false;
+            root.batteryAlert10Sent = false;
+            root.batteryAlert5Sent = false;
+            return;
+        }
+
+        let threshold = 0;
+        let urgency = "normal";
+        if (level <= 5 && !root.batteryAlert5Sent) {
+            threshold = 5;
+            urgency = "critical";
+            root.batteryAlert15Sent = true;
+            root.batteryAlert10Sent = true;
+            root.batteryAlert5Sent = true;
+        } else if (level <= 10 && !root.batteryAlert10Sent) {
+            threshold = 10;
+            urgency = "critical";
+            root.batteryAlert15Sent = true;
+            root.batteryAlert10Sent = true;
+        } else if (level <= 15 && !root.batteryAlert15Sent) {
+            threshold = 15;
+            root.batteryAlert15Sent = true;
+        }
+
+        if (threshold > 0) {
+            root.run([
+                "notify-send", "-a", "Batterie", "-u", urgency,
+                "-i", "battery-caution", "Batterie faible — " + threshold + "%",
+                "Il reste " + level + "% de batterie. Branche le chargeur."
+            ]);
+        }
+    }
+
+    function audioIcon() {
+        if (!root.defaultAudio || root.audioMuted)
+            return "";
+        if (root.audioVolume < 35)
+            return "";
+        if (root.audioVolume < 70)
+            return "";
+        return "";
+    }
+
+    function setAudioVolume(volume) {
+        if (!root.defaultAudio)
+            return;
+        root.defaultAudio.volume = Math.max(0, Math.min(1.5, volume));
+        if (root.defaultAudio.volume > 0 && root.defaultAudio.muted)
+            root.defaultAudio.muted = false;
+    }
+
+    function changeAudioVolume(delta) {
+        if (root.defaultAudio)
+            root.setAudioVolume(root.defaultAudio.volume + delta);
+    }
+
+    function toggleAudioMute() {
+        if (root.defaultAudio)
+            root.defaultAudio.muted = !root.defaultAudio.muted;
     }
 
     function vpnAction(action) {
@@ -133,6 +213,7 @@ Scope {
             onStreamFinished: {
                 try {
                     root.system = JSON.parse(text);
+                    root.checkBatteryAlert();
                 } catch (error) {
                     console.warn("status.sh:", error);
                 }
@@ -265,6 +346,7 @@ Scope {
                 id: bar
                 required property var modelData
                 property bool controlCenterOpen: false
+                property bool controlCenterHoverOpened: false
                 property int controlCenterTab: 0
                 property real tabSwipeAccumulator: 0
                 property bool tabSwipeLocked: false
@@ -280,9 +362,48 @@ Scope {
                     }
                 }
 
+                Timer {
+                    id: controlCenterHoverClose
+                    interval: 220
+                    repeat: false
+                    onTriggered: {
+                        if (bar.controlCenterHoverOpened
+                                && !centerMouse.containsMouse
+                                && !controlCardHover.containsMouse) {
+                            bar.controlCenterOpen = false;
+                            bar.controlCenterHoverOpened = false;
+                        }
+                    }
+                }
+
                 function showControlCenter(tabIndex) {
+                    controlCenterHoverClose.stop();
+                    controlCenterHoverOpened = false;
                     controlCenterTab = tabIndex;
                     controlCenterOpen = true;
+                }
+
+                function showControlCenterOnHover() {
+                    controlCenterHoverClose.stop();
+                    controlCenterTab = 0;
+                    controlCenterHoverOpened = true;
+                    controlCenterOpen = true;
+                }
+
+                function scheduleControlCenterHoverClose() {
+                    if (controlCenterHoverOpened)
+                        controlCenterHoverClose.restart();
+                }
+
+                function closeControlCenter() {
+                    controlCenterHoverClose.stop();
+                    controlCenterOpen = false;
+                    controlCenterHoverOpened = false;
+                }
+
+                function launchFromControlCenter(command) {
+                    closeControlCenter();
+                    root.run(command);
                 }
 
                 function handleTabSwipe(wheel) {
@@ -305,7 +426,7 @@ Scope {
                         return;
 
                     controlCenterTab = tabSwipeAccumulator < 0
-                        ? Math.min(3, controlCenterTab + 1)
+                        ? Math.min(4, controlCenterTab + 1)
                         : Math.max(0, controlCenterTab - 1);
                     tabSwipeAccumulator = 0;
                     tabSwipeLocked = true;
@@ -313,45 +434,69 @@ Scope {
                 }
 
                 anchors { top: true; left: true; right: true }
-                margins { top: 2; left: 5; right: 5 }
-                implicitHeight: 34
-                exclusiveZone: 38
+                margins { top: 0; left: 5; right: 5 }
+                implicitHeight: 36
+                exclusiveZone: 36
                 color: "transparent"
 
                 Item {
                     anchors.fill: parent
 
-                    Rectangle {
+                    Shape {
+                        id: leftIsland
                         anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-                        width: leftCluster.implicitWidth + 12
-                        height: 32
-                        radius: 0
-                        color: Qt.rgba(root.bg.r, root.bg.g, root.bg.b, 0.96)
-                        border.width: 1
-                        border.color: Qt.rgba(root.border.r, root.border.g, root.border.b, 0.68)
+                        width: leftCluster.implicitWidth + 20
+                        height: 36
+                        antialiasing: true
+
+                        ShapePath {
+                            strokeWidth: 1
+                            strokeColor: Qt.rgba(root.border.r, root.border.g, root.border.b, 0.68)
+                            fillColor: Qt.rgba(root.bg.r, root.bg.g, root.bg.b, 0.96)
+                            startX: 0
+                            startY: 0
+                            PathLine { x: leftIsland.width; y: 0 }
+                            PathLine { x: leftIsland.width - 6; y: leftIsland.height - 12 }
+                            PathQuad { x: leftIsland.width - 19; y: leftIsland.height; controlX: leftIsland.width - 9; controlY: leftIsland.height }
+                            PathLine { x: 19; y: leftIsland.height }
+                            PathQuad { x: 6; y: leftIsland.height - 12; controlX: 9; controlY: leftIsland.height }
+                            PathLine { x: 0; y: 0 }
+                        }
                     }
 
-                    Rectangle {
+                    Shape {
+                        id: rightIsland
                         anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                        width: rightCluster.implicitWidth + 12
-                        height: 32
-                        radius: 0
-                        color: Qt.rgba(root.bg.r, root.bg.g, root.bg.b, 0.96)
-                        border.width: 1
-                        border.color: Qt.rgba(root.border.r, root.border.g, root.border.b, 0.68)
+                        width: rightCluster.implicitWidth + 20
+                        height: 36
+                        antialiasing: true
+
+                        ShapePath {
+                            strokeWidth: 1
+                            strokeColor: Qt.rgba(root.border.r, root.border.g, root.border.b, 0.68)
+                            fillColor: Qt.rgba(root.bg.r, root.bg.g, root.bg.b, 0.96)
+                            startX: 0
+                            startY: 0
+                            PathLine { x: rightIsland.width; y: 0 }
+                            PathLine { x: rightIsland.width - 6; y: rightIsland.height - 12 }
+                            PathQuad { x: rightIsland.width - 19; y: rightIsland.height; controlX: rightIsland.width - 9; controlY: rightIsland.height }
+                            PathLine { x: 19; y: rightIsland.height }
+                            PathQuad { x: 6; y: rightIsland.height - 12; controlX: 9; controlY: rightIsland.height }
+                            PathLine { x: 0; y: 0 }
+                        }
                     }
 
                     Row {
                         id: leftCluster
-                        anchors { left: parent.left; leftMargin: 6; verticalCenter: parent.verticalCenter }
-                        height: 28
+                        anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                        height: 30
                         spacing: 5
 
                         Rectangle {
                             width: workspaceRow.implicitWidth + 10
-                            height: 28
-                            radius: 0
-                            color: root.surface
+                            height: 30
+                            radius: 11
+                            color: "transparent"
 
                             Row {
                                 id: workspaceRow
@@ -376,7 +521,7 @@ Scope {
                                         readonly property var windowsAfter: activeWindowIndex >= 0 ? workspaceWindows.slice(activeWindowIndex + 1) : []
                                         width: workspaceWindows.length > 0 ? workspaceContent.implicitWidth + 12 : (modelData.is_focused ? 28 : 20)
                                         height: 20
-                                        radius: 0
+                                        radius: 8
                                         color: modelData.is_focused && workspaceWindows.length === 0
                                             ? root.accent
                                             : workspaceMouse.containsMouse ? root.surfaceRaised : "transparent"
@@ -395,7 +540,7 @@ Scope {
                                                     width: 20
                                                     height: 20
                                                     IconImage { anchors.centerIn: parent; width: 14; height: 14; visible: entry !== null; source: entry ? Quickshell.iconPath(entry.icon) : "" }
-                                                    Text { anchors.centerIn: parent; visible: entry === null; text: "•"; color: root.muted; font.family: root.fontFamily; font.pixelSize: 9 }
+                                                    Text { anchors.centerIn: parent; visible: entry === null; text: "•"; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(9) }
                                                 }
                                             }
 
@@ -405,9 +550,9 @@ Scope {
                                                     ? DesktopEntries.heuristicLookup(activeWorkspaceWindow.app_id || "") : null
                                                 width: 20
                                                 height: 20
-                                                Rectangle { anchors.fill: parent; radius: 0; color: modelData.is_focused ? root.accent : "transparent" }
+                                                Rectangle { anchors.fill: parent; radius: 7; color: modelData.is_focused ? root.accent : "transparent" }
                                                 IconImage { anchors.fill: parent; anchors.margins: 3; visible: parent.entry !== null; source: parent.entry ? Quickshell.iconPath(parent.entry.icon) : "" }
-                                                Text { anchors.centerIn: parent; visible: parent.entry === null; text: "󰍹"; color: modelData.is_focused ? root.bg : root.muted; font.family: root.fontFamily; font.pixelSize: 11 }
+                                                Text { anchors.centerIn: parent; visible: parent.entry === null; text: "󰍹"; color: modelData.is_focused ? root.bg : root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(11) }
                                             }
 
                                             Item {
@@ -421,7 +566,7 @@ Scope {
                                                         ? root.bg
                                                         : modelData.is_focused ? root.accent : root.muted
                                                     font.family: root.fontFamily
-                                                    font.pixelSize: 9
+                                                    font.pixelSize: root.fontSize(9)
                                                     font.bold: true
                                                 }
                                             }
@@ -432,9 +577,9 @@ Scope {
                                                     ? DesktopEntries.heuristicLookup(activeWorkspaceWindow.app_id || "") : null
                                                 width: 20
                                                 height: 20
-                                                Rectangle { anchors.fill: parent; radius: 0; color: modelData.is_focused ? root.accent : "transparent" }
+                                                Rectangle { anchors.fill: parent; radius: 7; color: modelData.is_focused ? root.accent : "transparent" }
                                                 IconImage { anchors.fill: parent; anchors.margins: 3; visible: parent.entry !== null; source: parent.entry ? Quickshell.iconPath(parent.entry.icon) : "" }
-                                                Text { anchors.centerIn: parent; visible: parent.entry === null; text: "󰍹"; color: modelData.is_focused ? root.bg : root.muted; font.family: root.fontFamily; font.pixelSize: 11 }
+                                                Text { anchors.centerIn: parent; visible: parent.entry === null; text: "󰍹"; color: modelData.is_focused ? root.bg : root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(11) }
                                             }
 
                                             Repeater {
@@ -446,7 +591,7 @@ Scope {
                                                     width: 20
                                                     height: 20
                                                     IconImage { anchors.centerIn: parent; width: 14; height: 14; visible: entry !== null; source: entry ? Quickshell.iconPath(entry.icon) : "" }
-                                                    Text { anchors.centerIn: parent; visible: entry === null; text: "•"; color: root.muted; font.family: root.fontFamily; font.pixelSize: 9 }
+                                                    Text { anchors.centerIn: parent; visible: entry === null; text: "•"; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(9) }
                                                 }
                                             }
                                         }
@@ -465,31 +610,48 @@ Scope {
                         }
                     }
 
-                    Rectangle {
+                    Item {
                         id: centerPill
                         anchors.centerIn: parent
-                        width: root.selectedPlayer ? 330 : 154
-                        height: 32
-                        radius: 0
-                        color: centerMouse.containsMouse || bar.controlCenterOpen
-                            ? root.surfaceRaised
-                            : Qt.rgba(root.bg.r, root.bg.g, root.bg.b, 0.96)
-                        border.width: 1
-                        border.color: bar.controlCenterOpen ? root.accent : Qt.rgba(root.border.r, root.border.g, root.border.b, 0.68)
+                        width: root.selectedPlayer ? 345 : centerContent.implicitWidth + 28
+                        height: 36
                         clip: true
+
+                        Shape {
+                            id: centerIsland
+                            anchors.fill: parent
+                            antialiasing: true
+
+                            ShapePath {
+                                strokeWidth: 1
+                                strokeColor: bar.controlCenterOpen ? root.accent : Qt.rgba(root.border.r, root.border.g, root.border.b, 0.68)
+                                fillColor: centerMouse.containsMouse || bar.controlCenterOpen
+                                    ? root.surfaceRaised
+                                    : Qt.rgba(root.bg.r, root.bg.g, root.bg.b, 0.96)
+                                startX: 0
+                                startY: 0
+                                PathLine { x: centerIsland.width; y: 0 }
+                                PathLine { x: centerIsland.width - 6; y: centerIsland.height - 12 }
+                                PathQuad { x: centerIsland.width - 19; y: centerIsland.height; controlX: centerIsland.width - 9; controlY: centerIsland.height }
+                                PathLine { x: 19; y: centerIsland.height }
+                                PathQuad { x: 6; y: centerIsland.height - 12; controlX: 9; controlY: centerIsland.height }
+                                PathLine { x: 0; y: 0 }
+                            }
+                        }
 
                         Behavior on width { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                         RowLayout {
-                            anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
-                            spacing: 7
+                            id: centerContent
+                            anchors { fill: parent; leftMargin: 14; rightMargin: 14 }
+                            spacing: root.selectedPlayer !== null ? 7 : 12
 
                             Text {
                                 visible: root.selectedPlayer !== null
                                 text: root.selectedPlayer && root.selectedPlayer.isPlaying ? "󰏤" : "󰐊"
                                 color: root.accent
                                 font.family: root.fontFamily
-                                font.pixelSize: 12
+                                font.pixelSize: root.fontSize(12)
                             }
 
                             Text {
@@ -498,7 +660,7 @@ Scope {
                                 text: root.selectedPlayer ? (root.selectedPlayer.trackTitle || root.selectedPlayer.identity) : ""
                                 color: root.fg
                                 font.family: root.fontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: root.fontSize(10)
                                 font.bold: true
                                 elide: Text.ElideRight
                             }
@@ -516,7 +678,7 @@ Scope {
                                 text: Qt.formatDateTime(clock.date, "HH:mm")
                                 color: root.accent
                                 font.family: root.fontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: root.fontSize(10)
                                 font.bold: true
                             }
 
@@ -524,40 +686,98 @@ Scope {
                                 text: Qt.formatDateTime(clock.date, "ddd dd MMM")
                                 color: root.muted
                                 font.family: root.fontFamily
-                                font.pixelSize: 9
+                                font.pixelSize: root.fontSize(9)
                             }
                         }
 
                         MouseArea {
                             id: centerMouse
                             anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: bar.controlCenterOpen ? bar.controlCenterOpen = false : bar.showControlCenter(0)
+                            hoverEnabled: false  
+                            onEntered: {
+                                controlCenterHoverClose.stop();
+                                if (!bar.controlCenterOpen)
+                                    bar.showControlCenterOnHover();
+                            }
+                            onExited: bar.scheduleControlCenterHoverClose()
+                            onClicked: {
+                                if (bar.controlCenterOpen && !bar.controlCenterHoverOpened)
+                                    bar.closeControlCenter();
+                                else
+                                    bar.showControlCenter(0);
+                            }
                         }
                     }
 
                     Row {
                         id: rightCluster
-                        anchors { right: parent.right; rightMargin: 6; verticalCenter: parent.verticalCenter }
-                        height: 28
-                        spacing: 5
+                        anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                        height: 30
+                        spacing: 0
 
                         Rectangle {
-                            width: performanceRow.implicitWidth + 16
-                            height: 28
-                            radius: 0
-                            color: "transparent"
+                            width: volumeRow.implicitWidth + 10
+                            height: 30
+                            radius: 11
+                            color: volumeMouse.containsMouse ? root.surfaceRaised : "transparent"
+
+                            Row {
+                                id: volumeRow
+                                anchors.centerIn: parent
+                                spacing: 5
+                                Text {
+                                    text: root.audioIcon()
+                                    color: root.audioMuted || !root.defaultAudio ? root.muted : root.accent
+                                    font.family: root.fontFamily
+                                    font.pixelSize: root.fontSize(10)
+                                }
+                                Text {
+                                    text: root.defaultAudio ? root.audioVolume + "%" : "—"
+                                    color: root.audioMuted || !root.defaultAudio ? root.muted : root.fg
+                                    font.family: root.fontFamily
+                                    font.pixelSize: root.fontSize(10)
+                                    font.bold: true
+                                }
+                            }
+
+                            MouseArea {
+                                id: volumeMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                onClicked: mouse => {
+                                    if (mouse.button === Qt.RightButton)
+                                        root.toggleAudioMute();
+                                    else
+                                        bar.showControlCenter(3);
+                                }
+                                onWheel: wheel => root.changeAudioVolume(wheel.angleDelta.y > 0 ? 0.05 : -0.05)
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 1
+                            height: 11
+                            color: root.border
+                        }
+
+                        Rectangle {
+                            width: performanceRow.implicitWidth + 10
+                            height: 30
+                            radius: 11
+                            color: performanceMouse.containsMouse ? root.surfaceRaised : "transparent"
 
                             Row {
                                 id: performanceRow
                                 anchors.centerIn: parent
                                 spacing: 5
 
-                                Text { text: "CPU"; color: root.muted; font.family: root.fontFamily; font.pixelSize: 9 }
-                                Text { text: root.system.cpu + "%"; color: root.accent; font.family: root.fontFamily; font.pixelSize: 10; font.bold: true }
+                                Text { text: "CPU"; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(9) }
+                                Text { text: root.system.cpu + "%"; color: root.accent; font.family: root.fontFamily; font.pixelSize: root.fontSize(10); font.bold: true }
                                 Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 1; height: 11; color: root.border }
-                                Text { text: "RAM"; color: root.muted; font.family: root.fontFamily; font.pixelSize: 9 }
-                                Text { text: root.system.memoryUsed + "G"; color: root.accent; font.family: root.fontFamily; font.pixelSize: 10; font.bold: true }
+                                Text { text: "RAM"; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(9) }
+                                Text { text: root.system.memoryUsed + "G"; color: root.accent; font.family: root.fontFamily; font.pixelSize: root.fontSize(10); font.bold: true }
                             }
 
                             MouseArea {
@@ -570,17 +790,25 @@ Scope {
 
                         Rectangle {
                             visible: root.system.batteryPresent
-                            width: batteryRow.implicitWidth + 16
-                            height: 28
-                            radius: 0
-                            color: "transparent"
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 1
+                            height: 11
+                            color: root.border
+                        }
+
+                        Rectangle {
+                            visible: root.system.batteryPresent
+                            width: batteryRow.implicitWidth + 10
+                            height: 30
+                            radius: 11
+                            color: batteryMouse.containsMouse ? root.surfaceRaised : "transparent"
 
                             Row {
                                 id: batteryRow
                                 anchors.centerIn: parent
                                 spacing: 5
-                                Text { text: root.system.batteryStatus === "Charging" ? "BAT+" : "BAT"; color: root.muted; font.family: root.fontFamily; font.pixelSize: 9 }
-                                Text { text: root.system.batteryCapacity + "%"; color: root.system.batteryCapacity <= 15 ? root.critical : root.accent; font.family: root.fontFamily; font.pixelSize: 10; font.bold: true }
+                                Text { text: root.system.batteryStatus === "Charging" ? "BAT+" : "BAT"; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(9) }
+                                Text { text: root.system.batteryCapacity + "%"; color: root.system.batteryCapacity <= 15 ? root.critical : root.accent; font.family: root.fontFamily; font.pixelSize: root.fontSize(10); font.bold: true }
                             }
 
                             MouseArea {
@@ -594,9 +822,9 @@ Scope {
                         Rectangle {
                             visible: root.updatesText.length > 0
                             width: updatesLabel.implicitWidth + 16
-                            height: 28
-                            radius: 0
-                            color: "transparent"
+                            height: 30
+                            radius: 11
+                            color: updatesMouse.containsMouse ? root.surfaceRaised : "transparent"
 
                             Text {
                                 id: updatesLabel
@@ -604,7 +832,7 @@ Scope {
                                 text: root.updatesText
                                 color: root.warning
                                 font.family: root.fontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: root.fontSize(10)
                                 font.bold: true
                             }
 
@@ -632,12 +860,12 @@ Scope {
                         sequence: "Escape"
                         context: Qt.WindowShortcut
                         enabled: bar.controlCenterOpen
-                        onActivated: bar.controlCenterOpen = false
+                        onActivated: bar.closeControlCenter()
                     }
 
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: bar.controlCenterOpen = false
+                        onClicked: bar.closeControlCenter()
                     }
 
                     Rectangle {
@@ -645,7 +873,7 @@ Scope {
                         width: Math.min(700, bar.width * 0.74)
                         height: Math.min(470, bar.modelData.height * 0.74)
                         anchors { top: parent.top; topMargin: 4; horizontalCenter: parent.horizontalCenter }
-                        radius: 0
+                        radius: 18
                         color: Qt.rgba(root.bg.r, root.bg.g, root.bg.b, 0.97)
                         border.width: 1
                         border.color: root.border
@@ -670,6 +898,7 @@ Scope {
                                         { icon: "󰕮", label: "Accueil" },
                                         { icon: "󰎆", label: "Média" },
                                         { icon: "󰖂", label: "VPN" },
+                                        { icon: root.audioIcon(), label: "Audio" },
                                         { icon: "󰂯", label: "Bluetooth" }
                                     ]
 
@@ -690,13 +919,13 @@ Scope {
                                                 text: modelData.icon
                                                 color: bar.controlCenterTab === index ? root.bg : root.fg
                                                 font.family: root.fontFamily
-                                                font.pixelSize: 13
+                                                font.pixelSize: root.fontSize(13)
                                             }
                                             Text {
                                                 text: modelData.label
                                                 color: bar.controlCenterTab === index ? root.bg : root.fg
                                                 font.family: root.fontFamily
-                                                font.pixelSize: 10
+                                                font.pixelSize: root.fontSize(10)
                                                 font.bold: true
                                             }
                                         }
@@ -723,14 +952,14 @@ Scope {
                                         text: "󰅖"
                                         color: closeMouse.containsMouse ? root.bg : root.muted
                                         font.family: root.fontFamily
-                                        font.pixelSize: 13
+                                        font.pixelSize: root.fontSize(13)
                                     }
 
-                                    MouseArea {
-                                        id: closeMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        onClicked: bar.controlCenterOpen = false
+                                        MouseArea {
+                                            id: closeMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            onClicked: bar.closeControlCenter()
                                     }
                                 }
                             }
@@ -760,15 +989,19 @@ Scope {
                                                 color: root.surface
 
                                                 Column {
-                                                    anchors.centerIn: parent
-                                                    spacing: 1
+                                                    anchors {
+                                                        horizontalCenter: parent.horizontalCenter
+                                                        verticalCenter: parent.verticalCenter
+                                                        verticalCenterOffset: -8
+                                                    }
+                                                    spacing: -10
 
                                                     Text {
                                                         anchors.horizontalCenter: parent.horizontalCenter
                                                         text: Qt.formatDateTime(clock.date, "HH")
                                                         color: root.accent
                                                         font.family: root.fontFamily
-                                                        font.pixelSize: 42
+                                                        font.pixelSize: root.fontSize(42)
                                                         font.bold: true
                                                     }
                                                     Text {
@@ -776,16 +1009,21 @@ Scope {
                                                         text: Qt.formatDateTime(clock.date, "mm")
                                                         color: root.fg
                                                         font.family: root.fontFamily
-                                                        font.pixelSize: 42
+                                                        font.pixelSize: root.fontSize(42)
                                                         font.bold: true
                                                     }
-                                                    Text {
-                                                        anchors.horizontalCenter: parent.horizontalCenter
-                                                        text: Qt.formatDateTime(clock.date, "dddd d MMMM")
-                                                        color: root.muted
-                                                        font.family: root.fontFamily
-                                                        font.pixelSize: 10
+                                                }
+
+                                                Text {
+                                                    anchors {
+                                                        horizontalCenter: parent.horizontalCenter
+                                                        bottom: parent.bottom
+                                                        bottomMargin: 2
                                                     }
+                                                    text: Qt.formatDateTime(clock.date, "dddd d MMMM")
+                                                    color: root.muted
+                                                    font.family: root.fontFamily
+                                                    font.pixelSize: root.fontSize(10)
                                                 }
                                             }
 
@@ -803,7 +1041,7 @@ Scope {
                                                         text: "État du système"
                                                         color: root.fg
                                                         font.family: root.fontFamily
-                                                        font.pixelSize: 12
+                                                        font.pixelSize: root.fontSize(12)
                                                         font.bold: true
                                                     }
 
@@ -821,8 +1059,8 @@ Scope {
                                                             Item {
                                                                 width: parent.width
                                                                 height: 12
-                                                                Text { anchors.left: parent.left; text: modelData.icon + "  " + modelData.label; color: root.muted; font.family: root.fontFamily; font.pixelSize: 9 }
-                                                                Text { anchors.right: parent.right; text: modelData.value; color: root.fg; font.family: root.fontFamily; font.pixelSize: 9; font.bold: true }
+                                                                Text { anchors.left: parent.left; text: modelData.icon + "  " + modelData.label; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(9) }
+                                                                Text { anchors.right: parent.right; text: modelData.value; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(9); font.bold: true }
                                                             }
                                                             Rectangle {
                                                                 width: parent.width
@@ -859,7 +1097,7 @@ Scope {
                                                         color: root.surfaceRaised
                                                         clip: true
 
-                                                        Text { anchors.centerIn: parent; text: "󰎆"; color: root.muted; font.family: root.fontFamily; font.pixelSize: 40 }
+                                                        Text { anchors.centerIn: parent; text: "󰎆"; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(40) }
                                                         Image { anchors.fill: parent; source: root.selectedPlayer ? root.selectedPlayer.trackArtUrl : ""; fillMode: Image.PreserveAspectCrop; asynchronous: true }
                                                     }
 
@@ -868,22 +1106,22 @@ Scope {
                                                         Layout.fillHeight: true
                                                         spacing: 6
 
-                                                        Text { text: "EN ÉCOUTE"; color: root.accent; font.family: root.fontFamily; font.pixelSize: 8; font.bold: true }
-                                                        Text { Layout.fillWidth: true; text: root.selectedPlayer ? (root.selectedPlayer.trackTitle || root.selectedPlayer.identity) : "Aucun média"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 15; font.bold: true; elide: Text.ElideRight }
-                                                        Text { Layout.fillWidth: true; text: root.selectedPlayer ? (root.selectedPlayer.trackArtist || "Lecteur multimédia") : "Lance un lecteur compatible MPRIS"; color: root.muted; font.family: root.fontFamily; font.pixelSize: 10; elide: Text.ElideRight }
+                                                        Text { text: "EN ÉCOUTE"; color: root.accent; font.family: root.fontFamily; font.pixelSize: root.fontSize(8); font.bold: true }
+                                                        Text { Layout.fillWidth: true; text: root.selectedPlayer ? (root.selectedPlayer.trackTitle || root.selectedPlayer.identity) : "Aucun média"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(15); font.bold: true; elide: Text.ElideRight }
+                                                        Text { Layout.fillWidth: true; text: root.selectedPlayer ? (root.selectedPlayer.trackArtist || "Lecteur multimédia") : "Lance un lecteur compatible MPRIS"; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(10); elide: Text.ElideRight }
 
                                                         Item { Layout.fillHeight: true }
 
                                                         Row {
                                                             Layout.alignment: Qt.AlignHCenter
                                                             spacing: 18
-                                                            Text { text: "󰒮"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 18; MouseArea { anchors.fill: parent; onClicked: if (root.selectedPlayer) root.selectedPlayer.previous() } }
+                                                            Text { text: "󰒮"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(18); MouseArea { anchors.fill: parent; onClicked: if (root.selectedPlayer) root.selectedPlayer.previous() } }
                                                             Rectangle {
                                                                 width: 42; height: 36; radius: 11; color: root.accent
-                                                                Text { anchors.centerIn: parent; text: root.selectedPlayer && root.selectedPlayer.isPlaying ? "󰏤" : "󰐊"; color: root.bg; font.family: root.fontFamily; font.pixelSize: 18 }
+                                                                Text { anchors.centerIn: parent; text: root.selectedPlayer && root.selectedPlayer.isPlaying ? "󰏤" : "󰐊"; color: root.bg; font.family: root.fontFamily; font.pixelSize: root.fontSize(18) }
                                                                 MouseArea { anchors.fill: parent; onClicked: if (root.selectedPlayer && root.selectedPlayer.canTogglePlaying) root.selectedPlayer.togglePlaying() }
                                                             }
-                                                            Text { text: "󰒭"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 18; MouseArea { anchors.fill: parent; onClicked: if (root.selectedPlayer) root.selectedPlayer.next() } }
+                                                            Text { text: "󰒭"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(18); MouseArea { anchors.fill: parent; onClicked: if (root.selectedPlayer) root.selectedPlayer.next() } }
                                                         }
                                                     }
                                                 }
@@ -900,7 +1138,7 @@ Scope {
                                                     model: [
                                                         { icon: root.system.networkText, title: "Réseau", detail: root.system.networkTooltip, action: "network" },
                                                         { icon: root.system.vpnText, title: "VPN", detail: root.system.vpnTooltip, action: "vpn" },
-                                                        { icon: "", title: "Audio", detail: "Volume et sorties", action: "audio" },
+                                                        { icon: root.audioIcon(), title: "Audio", detail: root.audioMuted ? "Son coupé" : "Volume " + root.audioVolume + "%", action: "audio" },
                                                         { icon: root.bluetooth.powered ? "󰂯" : "󰂲", title: "Bluetooth", detail: root.bluetooth.powered ? "Adaptateur activé" : "Adaptateur désactivé", action: "bluetooth" }
                                                     ]
 
@@ -922,14 +1160,14 @@ Scope {
                                                                 anchors { left: parent.left; verticalCenter: parent.verticalCenter }
                                                                 width: 28
                                                                 height: 28
-                                                                Text { anchors.centerIn: parent; text: modelData.icon; color: modelData.action === "vpn" && root.system.vpnClass !== "inactive" ? root.accent : root.fg; font.family: root.fontFamily; font.pixelSize: 20 }
+                                                                Text { anchors.centerIn: parent; text: modelData.icon; color: modelData.action === "vpn" && root.system.vpnClass !== "inactive" ? root.accent : root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(20) }
                                                             }
 
                                                             Column {
                                                                 anchors { left: quickIconSlot.right; leftMargin: 12; right: parent.right; verticalCenter: parent.verticalCenter }
                                                                 spacing: 3
-                                                                Text { width: parent.width; text: modelData.title; color: root.fg; font.family: root.fontFamily; font.pixelSize: 11; font.bold: true }
-                                                                Text { width: parent.width; text: modelData.detail; color: root.muted; font.family: root.fontFamily; font.pixelSize: 8; elide: Text.ElideRight }
+                                                                Text { width: parent.width; text: modelData.title; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(11); font.bold: true }
+                                                                Text { width: parent.width; text: modelData.detail; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(8); elide: Text.ElideRight }
                                                             }
                                                         }
 
@@ -939,8 +1177,8 @@ Scope {
                                                             hoverEnabled: true
                                                             onClicked: {
                                                                 if (modelData.action === "vpn") bar.controlCenterTab = 2;
-                                                                else if (modelData.action === "bluetooth") bar.controlCenterTab = 3;
-                                                                else if (modelData.action === "audio") root.run(["pavucontrol"]);
+                                                                else if (modelData.action === "bluetooth") bar.controlCenterTab = 4;
+                                                                else if (modelData.action === "audio") bar.controlCenterTab = 3;
                                                                 else root.showNetworkMenu(controlCenter, quickCard);
                                                             }
                                                         }
@@ -962,7 +1200,7 @@ Scope {
                                             radius: 16
                                             color: root.surface
                                             clip: true
-                                            Text { anchors.centerIn: parent; text: "󰎆"; color: root.muted; font.family: root.fontFamily; font.pixelSize: 64 }
+                                            Text { anchors.centerIn: parent; text: "󰎆"; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(64) }
                                             Image { anchors.fill: parent; source: root.selectedPlayer ? root.selectedPlayer.trackArtUrl : ""; fillMode: Image.PreserveAspectCrop; asynchronous: true }
                                         }
 
@@ -972,8 +1210,8 @@ Scope {
                                             spacing: 10
 
                                             Item { Layout.fillHeight: true }
-                                            Text { Layout.fillWidth: true; text: root.selectedPlayer ? (root.selectedPlayer.trackTitle || root.selectedPlayer.identity) : "Aucun média"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 22; font.bold: true; elide: Text.ElideRight }
-                                            Text { Layout.fillWidth: true; text: root.selectedPlayer ? (root.selectedPlayer.trackArtist || root.selectedPlayer.trackAlbum || "Lecteur multimédia") : "Les lecteurs MPRIS apparaîtront ici"; color: root.accent; font.family: root.fontFamily; font.pixelSize: 11; elide: Text.ElideRight }
+                                            Text { Layout.fillWidth: true; text: root.selectedPlayer ? (root.selectedPlayer.trackTitle || root.selectedPlayer.identity) : "Aucun média"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(22); font.bold: true; elide: Text.ElideRight }
+                                            Text { Layout.fillWidth: true; text: root.selectedPlayer ? (root.selectedPlayer.trackArtist || root.selectedPlayer.trackAlbum || "Lecteur multimédia") : "Les lecteurs MPRIS apparaîtront ici"; color: root.accent; font.family: root.fontFamily; font.pixelSize: root.fontSize(11); elide: Text.ElideRight }
 
                                             Row {
                                                 Layout.preferredHeight: 70
@@ -1013,16 +1251,16 @@ Scope {
                                             Row {
                                                 Layout.alignment: Qt.AlignHCenter
                                                 spacing: 26
-                                                Text { text: "󰒮"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 24; MouseArea { anchors.fill: parent; onClicked: if (root.selectedPlayer) root.selectedPlayer.previous() } }
+                                                Text { text: "󰒮"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(24); MouseArea { anchors.fill: parent; onClicked: if (root.selectedPlayer) root.selectedPlayer.previous() } }
                                                 Rectangle {
                                                     width: 56
                                                     height: 46
                                                     radius: 14
                                                     color: root.accent
-                                                    Text { anchors.centerIn: parent; text: root.selectedPlayer && root.selectedPlayer.isPlaying ? "󰏤" : "󰐊"; color: root.bg; font.family: root.fontFamily; font.pixelSize: 22 }
+                                                    Text { anchors.centerIn: parent; text: root.selectedPlayer && root.selectedPlayer.isPlaying ? "󰏤" : "󰐊"; color: root.bg; font.family: root.fontFamily; font.pixelSize: root.fontSize(22) }
                                                     MouseArea { anchors.fill: parent; onClicked: if (root.selectedPlayer && root.selectedPlayer.canTogglePlaying) root.selectedPlayer.togglePlaying() }
                                                 }
-                                                Text { text: "󰒭"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 24; MouseArea { anchors.fill: parent; onClicked: if (root.selectedPlayer) root.selectedPlayer.next() } }
+                                                Text { text: "󰒭"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(24); MouseArea { anchors.fill: parent; onClicked: if (root.selectedPlayer) root.selectedPlayer.next() } }
                                             }
                                             Item { Layout.fillHeight: true }
                                         }
@@ -1047,12 +1285,12 @@ Scope {
                                                 Row {
                                                     anchors { fill: parent; margins: 16 }
                                                     spacing: 14
-                                                    Text { anchors.verticalCenter: parent.verticalCenter; text: root.system.vpnClass === "inactive" ? "󰖂" : "󰌾"; color: root.system.vpnClass === "inactive" ? root.muted : root.accent; font.family: root.fontFamily; font.pixelSize: 28 }
+                                                    Text { anchors.verticalCenter: parent.verticalCenter; text: root.system.vpnClass === "inactive" ? "󰖂" : "󰌾"; color: root.system.vpnClass === "inactive" ? root.muted : root.accent; font.family: root.fontFamily; font.pixelSize: root.fontSize(28) }
                                                     Column {
                                                         anchors.verticalCenter: parent.verticalCenter
                                                         spacing: 4
-                                                        Text { text: root.system.vpnClass === "inactive" ? "VPN déconnecté" : "VPN protégé"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 14; font.bold: true }
-                                                        Text { text: root.system.vpnTooltip; color: root.muted; font.family: root.fontFamily; font.pixelSize: 9 }
+                                                        Text { text: root.system.vpnClass === "inactive" ? "VPN déconnecté" : "VPN protégé"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(14); font.bold: true }
+                                                        Text { text: root.system.vpnTooltip; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(9) }
                                                     }
                                                 }
                                             }
@@ -1061,12 +1299,12 @@ Scope {
                                                 Layout.fillHeight: true
                                                 radius: 14
                                                 color: disconnectMouse.containsMouse ? root.critical : root.surface
-                                                Text { anchors.centerIn: parent; text: "󰅖  Tout couper"; color: disconnectMouse.containsMouse ? root.bg : root.critical; font.family: root.fontFamily; font.pixelSize: 10; font.bold: true }
+                                                Text { anchors.centerIn: parent; text: "󰅖  Tout couper"; color: disconnectMouse.containsMouse ? root.bg : root.critical; font.family: root.fontFamily; font.pixelSize: root.fontSize(10); font.bold: true }
                                                 MouseArea { id: disconnectMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.vpnAction("disconnect") }
                                             }
                                         }
 
-                                        Text { text: "Choisir un profil WireGuard"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 12; font.bold: true }
+                                        Text { text: "Choisir un profil WireGuard"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(12); font.bold: true }
 
                                         Repeater {
                                             model: [
@@ -1094,7 +1332,7 @@ Scope {
                                                         height: 46
                                                         radius: 13
                                                         color: active ? root.accent : root.surfaceRaised
-                                                        Text { anchors.centerIn: parent; text: modelData.icon; color: active ? root.bg : root.fg; font.family: root.fontFamily; font.pixelSize: 20 }
+                                                        Text { anchors.centerIn: parent; text: modelData.icon; color: active ? root.bg : root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(20) }
                                                     }
 
                                                     Rectangle {
@@ -1104,14 +1342,14 @@ Scope {
                                                         height: 34
                                                         radius: 10
                                                         color: active ? root.accent : root.surfaceRaised
-                                                        Text { anchors.centerIn: parent; text: active ? "Connecté" : "Connecter"; color: active ? root.bg : root.fg; font.family: root.fontFamily; font.pixelSize: 9; font.bold: true }
+                                                        Text { anchors.centerIn: parent; text: active ? "Connecté" : "Connecter"; color: active ? root.bg : root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(9); font.bold: true }
                                                     }
 
                                                     Column {
                                                         anchors { left: profileIcon.right; leftMargin: 16; right: profileButton.left; rightMargin: 16; verticalCenter: parent.verticalCenter }
                                                         spacing: 4
-                                                        Text { width: parent.width; text: modelData.name; color: root.fg; font.family: root.fontFamily; font.pixelSize: 15; font.bold: true }
-                                                        Text { width: parent.width; text: modelData.subtitle; color: root.muted; font.family: root.fontFamily; font.pixelSize: 9; elide: Text.ElideRight }
+                                                        Text { width: parent.width; text: modelData.name; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(15); font.bold: true }
+                                                        Text { width: parent.width; text: modelData.subtitle; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(9); elide: Text.ElideRight }
                                                     }
                                                 }
 
@@ -1136,9 +1374,131 @@ Scope {
                                                     visible: tray !== null
                                                     source: tray ? tray.icon : ""
                                                 }
-                                                Text { text: "Menu réseau"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 10; font.bold: true }
+                                                Text { text: "Menu réseau"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(10); font.bold: true }
                                             }
                                             MouseArea { id: editorMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.showNetworkMenu(controlCenter, parent) }
+                                        }
+                                    }
+                                }
+
+                                Item {
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        spacing: 12
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 86
+                                            radius: 15
+                                            color: root.audioMuted
+                                                ? root.surface
+                                                : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.16)
+                                            border.width: root.audioMuted ? 0 : 1
+                                            border.color: root.accent
+
+                                            RowLayout {
+                                                anchors { fill: parent; margins: 16 }
+                                                spacing: 14
+                                                Text {
+                                                    text: root.audioIcon()
+                                                    color: root.audioMuted ? root.muted : root.accent
+                                                    font.family: root.fontFamily
+                                                    font.pixelSize: root.fontSize(32)
+                                                }
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 3
+                                                    Text { text: root.defaultAudio ? (root.audioMuted ? "Son coupé" : "Sortie audio active") : "Aucune sortie audio"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(15); font.bold: true }
+                                                    Text { text: root.defaultAudio ? "Volume général · clic droit sur l’indicateur pour couper le son" : "Vérifie PipeWire ou ouvre le mixeur"; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(9) }
+                                                }
+                                                Text { text: root.defaultAudio ? root.audioVolume + "%" : "—"; color: root.audioMuted ? root.muted : root.accent; font.family: root.fontFamily; font.pixelSize: root.fontSize(28); font.bold: true }
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 150
+                                            radius: 15
+                                            color: root.surface
+
+                                            ColumnLayout {
+                                                anchors { fill: parent; margins: 18 }
+                                                spacing: 12
+
+                                                RowLayout {
+                                                    Layout.fillWidth: true
+                                                    Text { text: "Volume"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(12); font.bold: true }
+                                                    Item { Layout.fillWidth: true }
+                                                    Text { text: "0–150 %"; color: root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(9) }
+                                                }
+
+                                                Rectangle {
+                                                    id: audioVolumeTrack
+                                                    Layout.fillWidth: true
+                                                    Layout.preferredHeight: 14
+                                                    radius: 7
+                                                    color: root.surfaceRaised
+                                                    clip: true
+
+                                                    Rectangle {
+                                                        width: parent.width * Math.min(1, root.audioVolume / 150)
+                                                        height: parent.height
+                                                        radius: parent.radius
+                                                        color: root.audioMuted ? root.muted : root.accent
+                                                    }
+
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        enabled: root.defaultAudio !== null
+                                                        onPressed: mouse => root.setAudioVolume(mouse.x / width * 1.5)
+                                                        onPositionChanged: mouse => {
+                                                            if (pressed)
+                                                                root.setAudioVolume(mouse.x / width * 1.5);
+                                                        }
+                                                        onWheel: wheel => root.changeAudioVolume(wheel.angleDelta.y > 0 ? 0.05 : -0.05)
+                                                    }
+                                                }
+
+                                                RowLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 10
+                                                    Rectangle {
+                                                        Layout.preferredWidth: 78
+                                                        Layout.preferredHeight: 36
+                                                        radius: 10
+                                                        color: audioMinusMouse.containsMouse ? root.surfaceRaised : root.bg
+                                                        Text { anchors.centerIn: parent; text: "− 5 %"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(10); font.bold: true }
+                                                        MouseArea { id: audioMinusMouse; anchors.fill: parent; hoverEnabled: true; enabled: root.defaultAudio !== null; onClicked: root.changeAudioVolume(-0.05) }
+                                                    }
+                                                    Rectangle {
+                                                        Layout.fillWidth: true
+                                                        Layout.preferredHeight: 36
+                                                        radius: 10
+                                                        color: audioMuteMouse.containsMouse ? root.accent : root.surfaceRaised
+                                                        Text { anchors.centerIn: parent; text: root.audioMuted ? "󰖁  Réactiver le son" : "󰖁  Couper le son"; color: audioMuteMouse.containsMouse ? root.bg : root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(10); font.bold: true }
+                                                        MouseArea { id: audioMuteMouse; anchors.fill: parent; hoverEnabled: true; enabled: root.defaultAudio !== null; onClicked: root.toggleAudioMute() }
+                                                    }
+                                                    Rectangle {
+                                                        Layout.preferredWidth: 78
+                                                        Layout.preferredHeight: 36
+                                                        radius: 10
+                                                        color: audioPlusMouse.containsMouse ? root.surfaceRaised : root.bg
+                                                        Text { anchors.centerIn: parent; text: "+ 5 %"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(10); font.bold: true }
+                                                        MouseArea { id: audioPlusMouse; anchors.fill: parent; hoverEnabled: true; enabled: root.defaultAudio !== null; onClicked: root.changeAudioVolume(0.05) }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Item { Layout.fillHeight: true }
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 42
+                                            radius: 12
+                                            color: audioMixerMouse.containsMouse ? root.surfaceRaised : root.surface
+                                            Text { anchors.centerIn: parent; text: "󰒓  Ouvrir le mixeur et choisir les sorties"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(10); font.bold: true }
+                                            MouseArea { id: audioMixerMouse; anchors.fill: parent; hoverEnabled: true; onClicked: bar.launchFromControlCenter(["pavucontrol"]) }
                                         }
                                     }
                                 }
@@ -1154,7 +1514,7 @@ Scope {
                                             spacing: 10
 
                                             Rectangle {
-                                                width: parent.width - 150
+                                                width: parent.width - 300
                                                 height: parent.height
                                                 radius: 14
                                                 color: root.bluetooth.powered
@@ -1171,15 +1531,31 @@ Scope {
                                                         text: root.bluetooth.powered ? "󰂯" : "󰂲"
                                                         color: root.bluetooth.powered ? root.accent : root.muted
                                                         font.family: root.fontFamily
-                                                        font.pixelSize: 24
+                                                        font.pixelSize: root.fontSize(24)
                                                     }
                                                     Column {
                                                         anchors.verticalCenter: parent.verticalCenter
                                                         spacing: 3
-                                                        Text { text: root.bluetooth.powered ? "Bluetooth activé" : "Bluetooth désactivé"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 13; font.bold: true }
-                                                        Text { text: root.bluetooth.devices.length + " appareil(s) enregistré(s)"; color: root.muted; font.family: root.fontFamily; font.pixelSize: 9 }
+                                                        Text { text: root.bluetooth.powered ? "Bluetooth activé" : "Bluetooth désactivé"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(13); font.bold: true }
+                                                        Text { text: root.bluetooth.discovering ? "Recherche en cours…" : root.bluetooth.devices.length + " appareil(s) détecté(s)"; color: root.bluetooth.discovering ? root.accent : root.muted; font.family: root.fontFamily; font.pixelSize: root.fontSize(9) }
                                                     }
                                                 }
+                                            }
+
+                                            Rectangle {
+                                                width: 140
+                                                height: parent.height
+                                                radius: 14
+                                                color: scanMouse.containsMouse || root.bluetooth.discovering ? root.accent : root.surface
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: root.bluetooth.discovering ? "󰑐  Arrêter" : "󰑐  Rechercher"
+                                                    color: scanMouse.containsMouse || root.bluetooth.discovering ? root.bg : (root.bluetooth.powered ? root.accent : root.muted)
+                                                    font.family: root.fontFamily
+                                                    font.pixelSize: root.fontSize(10)
+                                                    font.bold: true
+                                                }
+                                                MouseArea { id: scanMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.bluetoothAction("toggle-scan", "") }
                                             }
 
                                             Rectangle {
@@ -1194,14 +1570,14 @@ Scope {
                                                     text: root.bluetooth.powered ? "󰐥  Désactiver" : "󰐥  Activer"
                                                     color: powerMouse.containsMouse ? root.bg : (root.bluetooth.powered ? root.critical : root.accent)
                                                     font.family: root.fontFamily
-                                                    font.pixelSize: 10
+                                                    font.pixelSize: root.fontSize(10)
                                                     font.bold: true
                                                 }
                                                 MouseArea { id: powerMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.bluetoothAction("toggle-power", "") }
                                             }
                                         }
 
-                                        Text { width: parent.width; height: 18; text: "Appareils enregistrés"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 12; font.bold: true }
+                                        Text { width: parent.width; height: 18; text: root.bluetooth.discovering ? "Appareils à proximité · recherche en cours" : "Appareils connus et à proximité"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(12); font.bold: true }
 
                                         Item {
                                             width: parent.width
@@ -1211,12 +1587,12 @@ Scope {
                                                 anchors.centerIn: parent
                                                 visible: root.bluetooth.devices.length === 0
                                                 text: root.bluetooth.powered
-                                                    ? "Aucun appareil jumelé\nUtilise le gestionnaire pour en ajouter un"
+                                                    ? "Aucun appareil détecté\nLance une recherche pour trouver les appareils à proximité"
                                                     : "Active le Bluetooth pour voir les appareils"
                                                 horizontalAlignment: Text.AlignHCenter
                                                 color: root.muted
                                                 font.family: root.fontFamily
-                                                font.pixelSize: 11
+                                                font.pixelSize: root.fontSize(11)
                                             }
 
                                             Column {
@@ -1235,7 +1611,7 @@ Scope {
                                                         radius: 14
                                                         color: modelData.connected
                                                             ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.16)
-                                                            : deviceMouse.containsMouse ? root.surfaceRaised : root.surface
+                                                            : root.surface
                                                         border.width: modelData.connected ? 1 : 0
                                                         border.color: root.accent
 
@@ -1247,24 +1623,39 @@ Scope {
                                                                 Layout.preferredHeight: 38
                                                                 radius: 11
                                                                 color: modelData.connected ? root.accent : root.surfaceRaised
-                                                                Text { anchors.centerIn: parent; text: "󰂯"; color: modelData.connected ? root.bg : root.fg; font.family: root.fontFamily; font.pixelSize: 17 }
+                                                                Text { anchors.centerIn: parent; text: "󰂯"; color: modelData.connected ? root.bg : root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(17) }
                                                             }
                                                             ColumnLayout {
                                                                 Layout.fillWidth: true
                                                                 spacing: 2
-                                                                Text { Layout.fillWidth: true; text: modelData.name; color: root.fg; font.family: root.fontFamily; font.pixelSize: 11; font.bold: true; elide: Text.ElideRight }
-                                                                Text { text: modelData.connected ? "Connecté" + (modelData.battery >= 0 ? " · " + modelData.battery + "%" : "") : modelData.address; color: modelData.connected ? root.accent : root.muted; font.family: root.fontFamily; font.pixelSize: 8 }
+                                                                Text { Layout.fillWidth: true; text: modelData.name; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(11); font.bold: true; elide: Text.ElideRight }
+                                                                Text {
+                                                                    text: modelData.connected
+                                                                        ? "Connecté" + (modelData.battery >= 0 ? " · " + modelData.battery + "%" : "")
+                                                                        : modelData.paired ? "Jumelé · " + modelData.address : "Détecté · " + modelData.address
+                                                                    color: modelData.connected ? root.accent : root.muted
+                                                                    font.family: root.fontFamily
+                                                                    font.pixelSize: root.fontSize(8)
+                                                                }
                                                             }
                                                             Rectangle {
-                                                                Layout.preferredWidth: 88
+                                                                Layout.preferredWidth: 92
                                                                 Layout.preferredHeight: 32
                                                                 radius: 10
-                                                                color: modelData.connected ? root.accent : root.surfaceRaised
-                                                                Text { anchors.centerIn: parent; text: modelData.connected ? "Déconnecter" : "Connecter"; color: modelData.connected ? root.bg : root.fg; font.family: root.fontFamily; font.pixelSize: 8; font.bold: true }
+                                                                color: deviceActionMouse.containsMouse || modelData.connected ? root.accent : root.surfaceRaised
+                                                                Text { anchors.centerIn: parent; text: modelData.connected ? "Déconnecter" : modelData.paired ? "Connecter" : "Jumeler"; color: deviceActionMouse.containsMouse || modelData.connected ? root.bg : root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(8); font.bold: true }
+                                                                MouseArea { id: deviceActionMouse; anchors.fill: parent; hoverEnabled: true; enabled: root.bluetooth.powered; onClicked: root.bluetoothAction("toggle-device", modelData.address) }
+                                                            }
+                                                            Rectangle {
+                                                                visible: modelData.paired
+                                                                Layout.preferredWidth: visible ? 34 : 0
+                                                                Layout.preferredHeight: 32
+                                                                radius: 10
+                                                                color: removeDeviceMouse.containsMouse ? root.critical : root.surfaceRaised
+                                                                Text { anchors.centerIn: parent; text: "󰆴"; color: removeDeviceMouse.containsMouse ? root.bg : root.critical; font.family: root.fontFamily; font.pixelSize: root.fontSize(11) }
+                                                                MouseArea { id: removeDeviceMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.bluetoothAction("remove-device", modelData.address) }
                                                             }
                                                         }
-
-                                                        MouseArea { id: deviceMouse; anchors.fill: parent; hoverEnabled: true; enabled: root.bluetooth.powered; onClicked: root.bluetoothAction("toggle-device", modelData.address) }
                                                     }
                                                 }
                                             }
@@ -1275,8 +1666,8 @@ Scope {
                                             height: 40
                                             radius: 12
                                             color: bluetoothManagerMouse.containsMouse ? root.surfaceRaised : root.surface
-                                            Text { anchors.centerIn: parent; text: "󰒓  Gérer et jumeler de nouveaux appareils"; color: root.fg; font.family: root.fontFamily; font.pixelSize: 10; font.bold: true }
-                                            MouseArea { id: bluetoothManagerMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.run(["blueman-manager"]) }
+                                            Text { anchors.centerIn: parent; text: "󰒓  Gérer et jumeler de nouveaux appareils"; color: root.fg; font.family: root.fontFamily; font.pixelSize: root.fontSize(10); font.bold: true }
+                                            MouseArea { id: bluetoothManagerMouse; anchors.fill: parent; hoverEnabled: true; onClicked: bar.launchFromControlCenter(["blueman-manager"]) }
                                         }
                                     }
                                 }
@@ -1284,11 +1675,14 @@ Scope {
                         }
 
                         MouseArea {
+                            id: controlCardHover
                             anchors.fill: parent
                             z: 100
                             acceptedButtons: Qt.NoButton
                             hoverEnabled: true
                             scrollGestureEnabled: true
+                            onEntered: controlCenterHoverClose.stop()
+                            onExited: bar.scheduleControlCenterHoverClose()
                             onWheel: wheel => bar.handleTabSwipe(wheel)
                         }
                     }

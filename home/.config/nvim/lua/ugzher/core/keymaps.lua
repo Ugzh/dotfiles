@@ -12,6 +12,11 @@ vim.keymap.set("n", "<C-u>", "<C-u>zz", { desc = "Monter d'une demi-page" })
 vim.keymap.set("n", "n", "nzzzv", { desc = "Résultat de recherche suivant" })
 vim.keymap.set("n", "N", "Nzzzv", { desc = "Résultat de recherche précédent" })
 
+vim.keymap.set("n", "<C-h>", "<C-w>h", { desc = "Fenêtre à gauche" })
+vim.keymap.set("n", "<C-j>", "<C-w>j", { desc = "Fenêtre en bas" })
+vim.keymap.set("n", "<C-k>", "<C-w>k", { desc = "Fenêtre en haut" })
+vim.keymap.set("n", "<C-l>", "<C-w>l", { desc = "Fenêtre à droite" })
+
 vim.keymap.set("v", "<", "<gv", opts)
 vim.keymap.set("v", ">", ">gv", opts)
 
@@ -34,15 +39,6 @@ vim.keymap.set("n", "Q", "<nop>")
 -- prevent x delete from registering when next paste
 vim.keymap.set("n", "x", '"_x', opts)
 
--- Hightlight yanking
-vim.api.nvim_create_autocmd("TextYankPost", {
-	desc = "Highlight when yanking (copying) text",
-	group = vim.api.nvim_create_augroup("kickstart-highlight-yank", { clear = true }),
-	callback = function()
-		vim.hl.on_yank()
-	end,
-})
-
 -- tab stuff
 vim.keymap.set("n", "<leader>to", "<cmd>tabnew<CR>", { desc = "Nouvel onglet" })
 vim.keymap.set("n", "<leader>tx", "<cmd>tabclose<CR>", { desc = "Fermer l'onglet" })
@@ -62,6 +58,21 @@ vim.keymap.set("n", "<leader>sx", "<cmd>close<CR>", { desc = "Fermer la fenêtre
 vim.keymap.set("i", "jk", "<ESC>", { desc = "Quitter le mode insertion" })
 --
 vim.keymap.set("n", "gl", vim.diagnostic.open_float, { desc = "Diagnostic de la ligne" })
+vim.keymap.set("n", "]d", function()
+	vim.diagnostic.jump({ count = 1, float = true })
+end, { desc = "Diagnostic suivant" })
+vim.keymap.set("n", "[d", function()
+	vim.diagnostic.jump({ count = -1, float = true })
+end, { desc = "Diagnostic précédent" })
+
+vim.keymap.set("n", "<leader>us", function()
+	vim.opt_local.spell = not vim.opt_local.spell:get()
+end, { desc = "Activer/désactiver le correcteur" })
+
+vim.keymap.set("n", "<leader>uw", function()
+	vim.opt_local.wrap = not vim.opt_local.wrap:get()
+	vim.opt_local.linebreak = vim.opt_local.wrap:get()
+end, { desc = "Activer/désactiver le retour à la ligne" })
 -- Copy filepath to the clipboard
 vim.keymap.set("n", "<leader>fp", function()
 	local filePath = vim.fn.expand("%:~") -- Gets the file path relative to the home directory

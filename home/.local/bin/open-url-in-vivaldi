@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# Open external links in Vivaldi, then focus the Vivaldi window wherever it
+# currently lives in Niri. This also works when the caller has no activation
+# token, such as a background tmux plugin.
+/usr/bin/vivaldi-stable "$@" >/dev/null 2>&1 &
+
+command -v niri >/dev/null 2>&1 || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+for _attempt in {1..50}; do
+  window_id="$({ niri msg --json windows 2>/dev/null || true; } | jq -r '
+    [.[] | select(.app_id == "vivaldi-stable")]
+    | sort_by([.is_urgent, (.focus_timestamp.secs // 0), (.focus_timestamp.nanos // 0)])
+    | last
+    | .id // empty
+  ')"
+
+  if [[ -n "$window_id" ]]; then
+    niri msg action focus-window --id "$window_id" >/dev/null 2>&1 || true
+    exit 0
+  fi
+
+  sleep 0.05
+done

@@ -7,7 +7,7 @@ logiciels nécessaires pour reconstruire la machine.
 
 - shell Zsh, Starship, Atuin et fzf-tab ;
 - Niri, Quickshell, Theme Picker, Waybar, Fuzzel, Mako, GTKLock et Swaylock ;
-- Kitty, Zellij, tmux et les outils modernes du terminal ;
+- Kitty, tmux et les outils modernes du terminal ;
 - Neovim et son thème généré ;
 - Yazi, Posting, Harlequin, lazygit et mise ;
 - GTK 3/4, portails XDG, Spicetify, scripts et lanceurs personnels ;
@@ -70,14 +70,6 @@ pas automatiquement `dnf`, Flatpak ou `systemctl`, afin de ne pas modifier une
 nouvelle machine sans validation.
 
 ## Après restauration
-
-Les applications et plugins restent à installer séparément. Les trois plugins
-Zellij sont volontairement absents du dépôt et peuvent être téléchargés depuis
-leurs releases officielles :
-
-- [zjstatus](https://github.com/dj95/zjstatus)
-- [room](https://github.com/rvcas/room)
-- [zellij-forgot](https://github.com/karimould/zellij-forgot)
 
 La liste et l’utilisation des outils se trouvent dans
 `home/.config/terminal-tools.md`.
