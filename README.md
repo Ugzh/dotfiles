@@ -39,7 +39,8 @@ dots --push "feat: mettre à jour le bureau"
 Commandes utiles :
 
 ```bash
-mise dot status
+mise -C ~/dotfiles dot status # PC : inclut aussi le groupe desktop
+mise dot status               # serveur : historique partagé uniquement
 mise dot history
 mise dot sync
 mise dot pull
