@@ -1,0 +1,29 @@
+[settings.dotfiles]
+root = "."
+relative_symlinks = true
+
+[bootstrap]
+dotfile_groups = ["desktop"]
+
+[dotfile_groups.desktop]
+root = "home"
+target = "~"
+mode = "symlink-each"
+manifest = "git"
+relative = true
+exclude = [
+  ".zshrc",
+  ".tmux.conf",
+  ".gitconfig",
+  ".config/mise/config.toml",
+  ".config/atuin/config.toml",
+  ".config/starship.toml",
+  ".config/lazygit/config.yml",
+  ".config/dust/config.toml",
+  ".config/tmux/**",
+  ".config/yazi/**",
+  ".config/nvim/**",
+  ".config/systemd/user/default.target.wants/codex-update-manager.service",
+  ".config/systemd/user/skwd-daemon.service",
+  ".config/systemd/user/sockets.target.wants/podman.socket",
+]

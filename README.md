@@ -1,75 +1,76 @@
 # Dotfiles d’Ugzher
 
-Configuration personnelle Fedora/Niri, thèmes de bureau et inventaire des
-logiciels nécessaires pour reconstruire la machine.
+Configuration personnelle Fedora/Niri et environnement terminal partagé avec
+les serveurs. Le dépôt public conserve le déploiement du bureau ; l’historique
+mise privé synchronise automatiquement les fichiers de terminal modifiés en
+place.
 
-## Contenu
+## Organisation
 
-- shell Zsh, Starship, Atuin et fzf-tab ;
-- Niri, Quickshell, Theme Picker, Waybar, Fuzzel, Mako, GTKLock et Swaylock ;
-- Kitty, tmux et les outils modernes du terminal ;
-- Neovim et son thème généré ;
-- Yazi, Posting, Harlequin, lazygit et mise ;
-- GTK 3/4, portails XDG, Spicetify, scripts et lanceurs personnels ;
-- fonds d’écran utilisés par les thèmes ;
-- paquets Fedora installés manuellement, applications Flatpak et services
-  utilisateur activés dans `inventory/`.
+- `mise.toml` déploie les fichiers propres au desktop depuis `home/` avec le
+  groupe `desktop` ;
+- mise suit directement Zsh, tmux, Git, Atuin, Starship, lazygit, dust, Yazi,
+  Neovim et sa propre configuration ;
+- le service utilisateur `mise-history` sauvegarde les modifications et les
+  échange avec le dépôt privé configuré par `mise dot origin set` ;
+- `inventory/` garde la liste des paquets Fedora, Flatpaks et services
+  utilisateur.
 
-Les caches, historiques, bases, binaires, plugins WASM et identifiants sont
-volontairement exclus. Les extensions Spicetify téléchargées, configurations
-Kubernetes, VPN, Fnox, navigateurs, Codex et clés GPG/SSH ne sont jamais
-copiés.
+Les caches, historiques applicatifs, bases, binaires, plugins WASM et
+identifiants sont exclus. Les configurations Kubernetes, VPN, Fnox,
+navigateurs, Codex et clés GPG/SSH ne sont jamais copiées.
 
-## Enregistrer les modifications
+## Utilisation quotidienne
 
-Les fichiers de `home/` sont directement liés dans `$HOME` avec GNU Stow :
-toute modification de la configuration modifie donc immédiatement le dépôt,
-sans copie intermédiaire.
-
-Pour mettre à jour les inventaires et créer un commit local :
+Les fichiers partagés se modifient normalement dans `$HOME`. Le watcher mise
+les enregistre et les synchronise sans commande manuelle. Pour forcer une
+sauvegarde, un échange immédiat et mettre à jour les inventaires :
 
 ```bash
 dots
 ```
 
-Pour choisir le message et pousser le commit vers GitHub :
+Pour publier aussi les changements du dépôt desktop :
 
 ```bash
 dots --push "feat: mettre à jour le bureau"
 ```
 
-`sync.sh` réapplique les liens Stow et régénère les trois inventaires de
-`inventory/`. Il ne recopie aucun fichier de configuration.
-
-## Restaurer sur une machine
-
-Installer Stow, cloner le dépôt dans `~/dotfiles`, puis afficher d’abord
-l’aperçu :
+Commandes utiles :
 
 ```bash
-sudo dnf install stow
+mise dot status
+mise dot history
+mise dot sync
+mise dot pull
 ```
+
+## Restaurer le desktop
+
+Après avoir installé mise et cloné ce dépôt dans `~/dotfiles`, prévisualiser :
 
 ```bash
 cd ~/dotfiles
 ./restore.sh
 ```
 
-Appliquer ensuite la restauration :
+Puis appliquer le groupe desktop et activer le watcher :
 
 ```bash
 ./restore.sh --apply
 ```
 
-Les fichiers physiques qui entrent en conflit sont déplacés dans
-`~/.dotfiles-backup/stow-<date>`, puis remplacés par des liens symboliques.
-Le script ne touche pas aux fichiers absents du paquet `home/`.
+## Ajouter une autre machine
 
-Les inventaires sont volontairement informatifs : la restauration ne lance
-pas automatiquement `dnf`, Flatpak ou `systemctl`, afin de ne pas modifier une
-nouvelle machine sans validation.
+Une fois mise installé et l’accès Git au dépôt privé configuré :
 
-## Après restauration
+```bash
+mise bootstrap --adopt git@github.com:Ugzh/dotfiles-sync.git --replace-history --take-remote-all --yes
+```
 
-La liste et l’utilisation des outils se trouvent dans
+Cette commande restaure les fichiers suivis, installe le service de
+surveillance déclaré dans la configuration partagée et connecte la machine au
+même historique. Les fichiers desktop ne sont pas appliqués sur le serveur.
+
+La liste et l’utilisation des outils du terminal se trouvent dans
 `home/.config/terminal-tools.md`.

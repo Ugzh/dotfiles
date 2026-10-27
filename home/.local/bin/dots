@@ -26,7 +26,7 @@ fi
 git -C "$dotfiles_root" add -A
 
 if git -C "$dotfiles_root" diff --cached --quiet; then
-  printf 'Aucun changement à enregistrer.\n'
+  printf 'Aucun changement desktop à enregistrer.\n'
 else
   git -C "$dotfiles_root" commit -m "$commit_message"
 fi
@@ -34,5 +34,5 @@ fi
 if $push; then
   git -C "$dotfiles_root" push
 else
-  printf 'Commit local terminé. Utilise dots --push pour publier sur GitHub.\n'
+  printf 'Historique privé synchronisé. Utilise dots --push pour publier aussi le dépôt desktop.\n'
 fi

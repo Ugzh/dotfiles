@@ -2,35 +2,18 @@
 set -euo pipefail
 
 dotfiles_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-target_root="${HOME:?HOME is not set}"
 inventory_root="$dotfiles_root/inventory"
-package_root="$dotfiles_root/home"
-absolute_links=(
-  .config/systemd/user/default.target.wants/codex-update-manager.service
-  .config/systemd/user/skwd-daemon.service
-  .config/systemd/user/sockets.target.wants/podman.socket
-)
 
-if ! command -v stow >/dev/null 2>&1; then
-  printf 'GNU Stow est requis. Installe-le avec : sudo dnf install stow\n' >&2
+if ! command -v mise >/dev/null 2>&1; then
+  printf 'mise est requis : https://mise.jdx.dev/getting-started.html\n' >&2
   exit 1
 fi
 
-stow \
-  --dir="$dotfiles_root" \
-  --target="$target_root" \
-  --no-folding \
-  --ignore='codex-update-manager\.service|skwd-daemon\.service|podman\.socket' \
-  --restow \
-  home
-
-for relative_path in "${absolute_links[@]}"; do
-  target_path="$target_root/$relative_path"
-  if [[ ! -e "$target_path" && ! -L "$target_path" ]]; then
-    mkdir -p "$(dirname -- "$target_path")"
-    ln -s "$(readlink -- "$package_root/$relative_path")" "$target_path"
-  fi
-done
+mise trust --yes "$dotfiles_root/mise.toml" >/dev/null
+mise --cd "$dotfiles_root" dot apply
+mise dot save
+mise dot sync
+mise dot pull
 
 mkdir -p "$inventory_root"
 
@@ -59,4 +42,4 @@ if command -v systemctl >/dev/null 2>&1; then
   fi
 fi
 
-printf 'Liens Stow et inventaires à jour.\n'
+printf 'Dotfiles mise synchronisés et inventaires à jour.\n'

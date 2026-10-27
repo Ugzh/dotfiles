@@ -2,3 +2,22 @@
 fnox = "latest"
 pitchfork = "latest"
 usage = "latest"
+
+[history]
+git_email = "mise@{hostname}"
+
+[bootstrap.services.mise-history]
+builtin = "history-watch"
+
+[dotfiles]
+"~/.zshrc" = { mode = "track" }
+"~/.tmux.conf" = { mode = "track" }
+"~/.gitconfig" = { mode = "track" }
+"~/.config/mise/config.toml" = { mode = "track" }
+"~/.config/atuin/config.toml" = { mode = "track" }
+"~/.config/starship.toml" = { mode = "track" }
+"~/.config/lazygit/config.yml" = { mode = "track" }
+"~/.config/dust/config.toml" = { mode = "track" }
+"~/.config/tmux" = { mode = "track" }
+"~/.config/yazi" = { mode = "track" }
+"~/.config/nvim" = { mode = "track", exclude = [".git/**", "nvim.log"] }
